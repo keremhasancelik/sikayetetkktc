@@ -1720,7 +1720,7 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [user, setUser] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [siteStats] = useState({ total:4282012, resolved:1847330, members:342891 });
+  const [siteStats, setSiteStats] = useState({ total:4282012, resolved:1847330, members:342891 });
   const [footerData, setFooterData] = useState({
     desc: "KKTC'nin bağımsız şikayet platformu. Sesinizi duyurun, değişim yaratın.",
     columns: [
@@ -1751,7 +1751,7 @@ export default function App() {
       {page==="my-complaints" && user && <UserPanel user={user} setUser={setUser} setPage={setPage} initTab="my-complaints" />}
       {page==="notifications" && user && <UserPanel user={user} setUser={setUser} setPage={setPage} initTab="notifications" />}
       {page==="saved" && user && <UserPanel user={user} setUser={setUser} setPage={setPage} initTab="saved" />}
-      {page==="admin" && user?.role==="admin" && <AdminPanel user={user} setPage={setPage} footerData={footerData} setFooterData={setFooterData} siteStats={siteStats} setSiteStats={setSiteStats} />}
+      {page==="admin" && user?.role==="admin" && <AdminPanel user={user} setPage={setPage} footerData={footerData} setFooterData={setFooterData} />}
       {page==="backend-guide" && <BackendGuidePage />}
 
       {/* Quick access to backend guide */}
