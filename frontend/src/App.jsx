@@ -430,11 +430,24 @@ const CategoriesPage = ({ setPage }) => {
   const [categories, setCategories] = useState(PRESET_CATEGORIES);
   const [showAdd, setShowAdd] = useState(false);
   const [newCat, setNewCat] = useState({ name:"", icon:"📌", color:C.blue });
-  const ICON_OPTIONS = ["📌","🏢","🚗","🌿","💊","🎵","🍔","🏋️","✈️","📱","💻","🏦","🛠️","🎭","🏪","🏗️","🌊","🔌"];
+  const ICON_OPTIONS = ["📌","🏢","🚗","🌿","💊","🎵","🍔","🏋️","✈️","📱","💻","🏦","🛠️","🎭","🏪","🏗️","🌊","🔌","🏨","🚕","⚖️","🔧","🏫","🎰","🧹","🐕"];
 
-  const addCategory = () => {
+  // Supabase'den custom kategorileri de çek
+  useEffect(()=>{
+    sb.get("categories","?is_custom=eq.true&order=created_at.desc").then(data=>{
+      if(data&&data.length>0){
+        const custom = data.map(c=>({ id:c.id, name:c.name, icon:c.icon||"📌", color:c.color||C.blue, count:c.complaint_count||0, custom:true }));
+        setCategories([...PRESET_CATEGORIES, ...custom]);
+      }
+    }).catch(()=>{});
+  },[]);
+
+  const addCategory = async () => {
     if (!newCat.name.trim()) return;
-    setCategories([...categories, { id: Date.now(), ...newCat, count: 0, custom: true }]);
+    // Supabase'e kaydet
+    const res = await sb.post("categories", { name:newCat.name.trim(), icon:newCat.icon, color:newCat.color, complaint_count:0, is_custom:true });
+    const newId = (res&&res[0])?res[0].id:Date.now();
+    setCategories(prev=>[...prev, { id:newId, ...newCat, name:newCat.name.trim(), count:0, custom:true }]);
     setNewCat({ name:"", icon:"📌", color:C.blue });
     setShowAdd(false);
   };
@@ -732,7 +745,7 @@ const AIComplaintPage = ({ user, setPage }) => {
   const [step, setStep] = useState(1); // 1=company, 2=category, 3=detail, 4=preview
   const [draft, setDraft] = useState({ company:"", category:"", title:"", body:"" });
   const [isTyping, setIsTyping] = useState(false);
-  const [useForm, setUseForm] = useState(false); // toggle AI vs form
+  const [useForm, setUseForm] = useState(true); // true = form mode default
   const msgRef = useRef(null);
 
   const scrollToBottom = () => { if(msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight; };
@@ -881,8 +894,25 @@ const AIComplaintPage = ({ user, setPage }) => {
               <select style={inp} value={draft.category} onChange={e=>setDraft({...draft, category:e.target.value})}>
                 <option value="">Seçin</option>
                 {PRESET_CATEGORIES.map(c=><option key={c.id} value={c.name}>{c.icon} {c.name}</option>)}
+                <option value="">──────────</option>
+                <option value="__new__">➕ Yeni Kategori Ekle...</option>
               </select>
             </FormRow>
+            {draft.category === "__new__" && (
+              <FormRow label="Yeni Kategori Adı">
+                <div style={{ display:"flex", gap:8 }}>
+                  <input style={{ ...inp, flex:1 }} placeholder="Örn: Otel Şikayeti, Araç Tamiri..." value={draft.newCatName||""} onChange={e=>setDraft({...draft, newCatName:e.target.value})} />
+                  <button style={btn("primary","sm")} onClick={async()=>{
+                    if (!draft.newCatName?.trim()) return;
+                    const catName = draft.newCatName.trim();
+                    // Supabase'e kaydet
+                    await sb.post("categories", { name:catName, icon:"📌", color:C.blue, complaint_count:0, is_custom:true });
+                    setDraft({...draft, category:catName, newCatName:""});
+                  }}>Ekle</button>
+                </div>
+                <div style={{ fontSize:12, color:C.muted, marginTop:4 }}>Bu kategori kategoriler listesine eklenecek</div>
+              </FormRow>
+            )}
             <FormRow label="Kurum / İşletme">
               <input style={inp} placeholder="Şikayet ettiğiniz kurum adı" value={draft.company} onChange={e=>setDraft({...draft, company:e.target.value})} />
             </FormRow>
@@ -1282,6 +1312,131 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
 };
 
 // ─── ADMIN PANEL ─────────────────────────────────────────────
+// ─── ADMIN CATEGORIES TAB ────────────────────────────────────
+const AdminCategoriesTab = () => {
+  const [allCats, setAllCats] = useState(PRESET_CATEGORIES);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newCat, setNewCat] = useState({ name:"", icon:"📌", color:C.blue });
+  const ICON_OPTIONS = ["📌","🏢","🚗","🌿","💊","🎵","🍔","🏋️","✈️","📱","💻","🏦","🛠️","🎭","🏪","🏗️","🌊","🔌","🏨","🚕","⚖️","🔧","🏫","🎰","🧹","🐕"];
+  const COLOR_OPTIONS = [C.blue,C.accent,C.green,C.purple,C.amber,"#0891b2","#7c3aed","#059669","#dc2626","#f97316","#0f766e","#be185d"];
+
+  useEffect(()=>{
+    sb.get("categories","?order=is_custom.asc,created_at.desc").then(data=>{
+      if(data&&data.length>0){
+        const dbCats = data.map(c=>({ id:c.id, name:c.name, icon:c.icon||"📌", color:c.color||C.blue, count:c.complaint_count||0, custom:c.is_custom }));
+        // Preset'leri DB'deki isimlerle birleştir, tekrar olmasın
+        const dbNames = dbCats.map(c=>c.name);
+        const presets = PRESET_CATEGORIES.filter(p=>!dbNames.includes(p.name));
+        setAllCats([...presets, ...dbCats.filter(c=>c.custom)]);
+      }
+    }).catch(()=>{});
+  },[]);
+
+  const addCat = async() => {
+    if(!newCat.name.trim()) return;
+    const res = await sb.post("categories",{name:newCat.name.trim(),icon:newCat.icon,color:newCat.color,complaint_count:0,is_custom:true});
+    const id = (res&&res[0])?res[0].id:Date.now();
+    setAllCats(prev=>[...prev,{id,name:newCat.name.trim(),icon:newCat.icon,color:newCat.color,count:0,custom:true}]);
+    setNewCat({name:"",icon:"📌",color:C.blue});
+    setShowAdd(false);
+    alert("Kategori eklendi ✓");
+  };
+
+  const delCat = async(cat) => {
+    if(!cat.custom){alert("Standart kategoriler silinemez.");return;}
+    if(!window.confirm(cat.name+" kategorisini silmek istediğinizden emin misiniz?"))return;
+    await sb.delete("categories",cat.id);
+    setAllCats(prev=>prev.filter(c=>c.id!==cat.id));
+  };
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:18,flexWrap:"wrap",gap:10}}>
+        <div>
+          <h2 style={{margin:0,fontSize:20,color:C.primary,fontWeight:700}}>Kategori Yönetimi</h2>
+          <p style={{margin:"4px 0 0",fontSize:13,color:C.muted}}>{allCats.length} kategori · {allCats.filter(c=>c.custom).length} kullanıcı tarafından eklendi</p>
+        </div>
+        <button style={btn("primary")} onClick={()=>setShowAdd(!showAdd)}>+ Yeni Kategori Ekle</button>
+      </div>
+
+      {showAdd && (
+        <div style={{...card,marginBottom:20,borderLeft:`4px solid ${C.primary}`}}>
+          <h3 style={{margin:"0 0 16px",fontSize:15,color:C.primary}}>Yeni Kategori</h3>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+            <div>
+              <label style={{display:"block",fontSize:11.5,fontWeight:600,color:C.muted,marginBottom:5,textTransform:"uppercase"}}>Kategori Adı</label>
+              <input style={inp} placeholder="Örn: Otel Şikayeti" value={newCat.name} onChange={e=>setNewCat({...newCat,name:e.target.value})} />
+            </div>
+            <div>
+              <label style={{display:"block",fontSize:11.5,fontWeight:600,color:C.muted,marginBottom:5,textTransform:"uppercase"}}>Önizleme</label>
+              <div style={{...card,display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderLeft:`4px solid ${newCat.color}`}}>
+                <span style={{fontSize:22}}>{newCat.icon}</span>
+                <span style={{fontWeight:600,fontSize:14,color:newCat.name?C.text:C.muted}}>{newCat.name||"Kategori Adı"}</span>
+              </div>
+            </div>
+          </div>
+          <div style={{marginBottom:14}}>
+            <label style={{display:"block",fontSize:11.5,fontWeight:600,color:C.muted,marginBottom:8,textTransform:"uppercase"}}>İkon Seç</label>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+              {ICON_OPTIONS.map(ic=><button key={ic} onClick={()=>setNewCat({...newCat,icon:ic})} style={{width:36,height:36,borderRadius:7,border:`2px solid ${newCat.icon===ic?C.primary:C.border}`,background:newCat.icon===ic?"#e8f0fe":"#fff",cursor:"pointer",fontSize:18}}>{ic}</button>)}
+            </div>
+          </div>
+          <div style={{marginBottom:16}}>
+            <label style={{display:"block",fontSize:11.5,fontWeight:600,color:C.muted,marginBottom:8,textTransform:"uppercase"}}>Renk Seç</label>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {COLOR_OPTIONS.map(col=><button key={col} onClick={()=>setNewCat({...newCat,color:col})} style={{width:28,height:28,borderRadius:"50%",background:col,border:newCat.color===col?"3px solid #0f172a":"3px solid transparent",cursor:"pointer"}} />)}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:10}}>
+            <button style={{...btn("ghost"),flex:1}} onClick={()=>setShowAdd(false)}>İptal</button>
+            <button style={{...btn("primary"),flex:1}} onClick={addCat} disabled={!newCat.name.trim()}>✓ Kategori Ekle</button>
+          </div>
+        </div>
+      )}
+
+      <h3 style={{fontSize:13,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>Standart Kategoriler</h3>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:13,marginBottom:24}}>
+        {allCats.filter(c=>!c.custom).map(cat=>(
+          <div key={cat.id} style={{...card,borderLeft:`4px solid ${cat.color}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                <span style={{fontSize:24}}>{cat.icon}</span>
+                <div><div style={{fontWeight:600,fontSize:13.5}}>{cat.name}</div><div style={{fontSize:12,color:C.muted}}>{cat.count.toLocaleString()} şikayet</div></div>
+              </div>
+              <button style={btn("ghost","sm")} title="Standart kategoriler düzenlenemez" disabled>🔒</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {allCats.filter(c=>c.custom).length > 0 && (<>
+        <h3 style={{fontSize:13,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:.8,marginBottom:12}}>Kullanıcı Kategorileri</h3>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:13}}>
+          {allCats.filter(c=>c.custom).map(cat=>(
+            <div key={cat.id} style={{...card,borderLeft:`4px solid ${cat.color}`,position:"relative"}}>
+              <div style={{position:"absolute",top:8,right:8,background:C.accent+"15",color:C.accent,fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:20}}>Kullanıcı</div>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                <span style={{fontSize:24}}>{cat.icon}</span>
+                <div><div style={{fontWeight:600,fontSize:13.5}}>{cat.name}</div><div style={{fontSize:12,color:C.muted}}>{cat.count} şikayet</div></div>
+              </div>
+              <button style={{...btn("danger","sm"),width:"100%"}} onClick={()=>delCat(cat)}>🗑 Sil</button>
+            </div>
+          ))}
+        </div>
+      </>)}
+
+      {allCats.filter(c=>c.custom).length===0 && (
+        <div style={{...card,textAlign:"center",padding:32,background:"#fafbfc",border:`2px dashed ${C.border}`}}>
+          <div style={{fontSize:32,marginBottom:8}}>📂</div>
+          <h3 style={{margin:"0 0 6px",color:C.primary}}>Henüz Kullanıcı Kategorisi Yok</h3>
+          <p style={{color:C.muted,fontSize:13.5,marginBottom:14}}>Kullanıcılar yeni kategori ekleyebilir veya siz buradan ekleyebilirsiniz.</p>
+          <button style={btn("primary")} onClick={()=>setShowAdd(true)}>+ İlk Kategoriyi Ekle</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── ADMIN COMPLAINTS TAB ───────────────────────────────────
 const AdminComplaintsTab = ({ complaints, setComplaints, deleteComplaint, updateStatus, loadingComplaints }) => {
   // Local style helpers (AdminPanel scope'undan bağımsız)
@@ -1575,31 +1730,7 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
         )}
 
         {tab==="categories" && (
-          <div>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:18 }}>
-              <h2 style={{ margin:0, fontSize:20, color:C.primary, fontWeight:700 }}>Kategori Yönetimi</h2>
-              <button style={btn("primary")}>+ Yeni Kategori</button>
-            </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:14 }}>
-              {PRESET_CATEGORIES.map(cat=>(
-                <div key={cat.id} style={{ ...card, borderLeft:`4px solid ${cat.color}` }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                    <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-                      <span style={{ fontSize:24 }}>{cat.icon}</span>
-                      <div>
-                        <div style={{ fontWeight:600, fontSize:13.5 }}>{cat.name}</div>
-                        <div style={{ fontSize:12, color:C.muted }}>{cat.count.toLocaleString()} şikayet</div>
-                      </div>
-                    </div>
-                    <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
-                      <button style={btn("ghost","sm")}>✏️</button>
-                      <button style={btn("danger","sm")}>🗑</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <AdminCategoriesTab />
         )}
 
         {tab==="footer-edit" && (
