@@ -23,6 +23,20 @@ const sb = {
   },
 };
 
+// ─── EMAIL SERVICE ───────────────────────────────────────────
+const EMAIL_WORKER = "https://sikayetetkktc-email.keremhasancelik1905.workers.dev";
+
+const sendEmail = async (type, to, data = {}) => {
+  try {
+    await fetch(EMAIL_WORKER, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, to, ...data }),
+    });
+  } catch (e) {
+    console.error("Email gönderilemedi:", e);
+  }
+};
 
 // ─── SVG LOGO & SOCIAL ICONS ────────────────────────────────
 const LogoIcon = ({ size = 36 }) => (
@@ -187,7 +201,6 @@ const Navbar = ({ page, setPage, user, setUser }) => {
   const [drop, setDrop] = useState(false);
   return (
     <nav style={{ background:"#fff", borderBottom:`2px solid ${C.primary}`, padding:"0 24px", display:"flex", alignItems:"center", justifyContent:"space-between", height:62, position:"sticky", top:0, zIndex:99, boxShadow:"0 2px 8px rgba(0,0,0,.07)" }}>
-      {/* Logo */}
       <div onClick={()=>setPage("home")} style={{ display:"flex", alignItems:"center", gap:9, cursor:"pointer" }}>
         <LogoIcon size={34} />
         <div>
@@ -195,14 +208,12 @@ const Navbar = ({ page, setPage, user, setUser }) => {
           <div style={{ fontSize:9.5, color:C.light, letterSpacing:.8 }}>sikayetetkktc.com</div>
         </div>
       </div>
-      {/* Nav links */}
       <div style={{ display:"flex", gap:2 }}>
         {[["home","Ana Sayfa"],["complaints","Şikayetler"],["categories","Kategoriler"]].map(([id,label])=>(
           <button key={id} onClick={()=>setPage(id)} style={{ padding:"7px 13px", borderRadius:6, cursor:"pointer", fontSize:13.5, fontWeight: page===id ? 600 : 400, color: page===id ? C.primary : C.muted, background: page===id ? "#e8f0fe" : "transparent", border:"none", fontFamily:"inherit" }}>{label}</button>
         ))}
         {user?.role==="admin" && <button onClick={()=>setPage("admin")} style={{ padding:"7px 13px", borderRadius:6, cursor:"pointer", fontSize:13.5, fontWeight:600, color:C.purple, background:"#ede9fe", border:"none", fontFamily:"inherit" }}>🔧 Admin</button>}
       </div>
-      {/* Auth */}
       <div style={{ display:"flex", gap:8, alignItems:"center" }}>
         {user ? (
           <div style={{ position:"relative" }}>
@@ -346,7 +357,6 @@ const HomePage = ({ setPage, setSelected, user }) => {
 
   return (
     <div>
-      {/* Hero */}
       <div style={{ background:`linear-gradient(135deg, ${C.navy} 0%, ${C.primary} 55%, #1e5fa0 100%)`, padding:"60px 24px", textAlign:"center", color:"#fff" }}>
         <div style={{ display:"inline-block", background:C.accent, padding:"3px 14px", borderRadius:20, fontSize:12.5, fontWeight:600, marginBottom:14, letterSpacing:.5 }}>🇨🇾 KKTC'nin Güvenilir Şikayet Platformu</div>
         <h1 style={{ fontSize:38, fontWeight:800, margin:"0 0 14px", lineHeight:1.2 }}>Sesinizi Duyurun,<br />Çözüm Bulun!</h1>
@@ -358,7 +368,6 @@ const HomePage = ({ setPage, setSelected, user }) => {
           <button style={{ ...btn("secondary","lg"), color:"#fff", borderColor:"rgba(255,255,255,.45)" }} onClick={()=>setPage("complaints")}>Tüm Şikayetler</button>
         </div>
       </div>
-      {/* Stats */}
       <div style={{ background:C.accent, padding:"14px 24px", display:"flex", justifyContent:"center", gap:44, flexWrap:"wrap" }}>
         {[["4.282.012","Toplam Şikayet"],["1.847.330","Çözülen"],["342.891","Üye"],["8.92M","Aylık Ziyaretçi"]].map(([n,l])=>(
           <div key={l} style={{ textAlign:"center", color:"#fff" }}>
@@ -368,14 +377,12 @@ const HomePage = ({ setPage, setSelected, user }) => {
         ))}
       </div>
       <div style={{ maxWidth:1200, margin:"0 auto", padding:"36px 24px" }}>
-        {/* Search */}
         <div style={{ ...card, marginBottom:28, padding:"16px 20px" }}>
           <div style={{ display:"flex", gap:10 }}>
             <input style={{ ...inp, fontSize:15, padding:"11px 15px" }} placeholder="🔍  Kurum adı, şikayet konusu veya kategori ara..." value={search} onChange={e=>setSearch(e.target.value)} />
             <button style={btn("primary","lg")}>Ara</button>
           </div>
         </div>
-        {/* Categories strip */}
         <div style={{ marginBottom:36 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
             <h2 style={{ margin:0, fontSize:20, fontWeight:800, color:C.primary }}>Kategoriler</h2>
@@ -391,7 +398,6 @@ const HomePage = ({ setPage, setSelected, user }) => {
             ))}
           </div>
         </div>
-        {/* Recent complaints */}
         <div>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
             <h2 style={{ margin:0, fontSize:20, fontWeight:800, color:C.primary }}>Son Şikayetler</h2>
@@ -401,7 +407,6 @@ const HomePage = ({ setPage, setSelected, user }) => {
             {filtered.map(c=><ComplaintCard key={c.id} c={c} onClick={c=>{ setSelected(c); setPage("detail"); }} />)}
           </div>
         </div>
-        {/* Why us */}
         <div style={{ marginTop:44 }}>
           <h2 style={{ margin:"0 0 20px", fontSize:20, fontWeight:800, color:C.primary }}>Neden ŞikayetETKKTC?</h2>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(230px,1fr))", gap:14 }}>
@@ -415,7 +420,6 @@ const HomePage = ({ setPage, setSelected, user }) => {
           </div>
         </div>
       </div>
-      {/* CTA */}
       <div style={{ background:C.primary, padding:"44px 24px", textAlign:"center", color:"#fff" }}>
         <h2 style={{ fontSize:26, marginBottom:10 }}>Şikayetinizi Bir Kurum Görmeli</h2>
         <p style={{ opacity:.8, marginBottom:22, fontSize:15 }}>KKTC'de yaşadığınız sorunları bizimle paylaşın.</p>
@@ -425,14 +429,13 @@ const HomePage = ({ setPage, setSelected, user }) => {
   );
 };
 
-// ─── CATEGORIES PAGE (with custom category add) ─────────────
+// ─── CATEGORIES PAGE ─────────────────────────────────────────
 const CategoriesPage = ({ setPage }) => {
   const [categories, setCategories] = useState(PRESET_CATEGORIES);
   const [showAdd, setShowAdd] = useState(false);
   const [newCat, setNewCat] = useState({ name:"", icon:"📌", color:C.blue });
   const ICON_OPTIONS = ["📌","🏢","🚗","🌿","💊","🎵","🍔","🏋️","✈️","📱","💻","🏦","🛠️","🎭","🏪","🏗️","🌊","🔌","🏨","🚕","⚖️","🔧","🏫","🎰","🧹","🐕"];
 
-  // Supabase'den custom kategorileri de çek
   useEffect(()=>{
     sb.get("categories","?is_custom=eq.true&order=created_at.desc").then(data=>{
       if(data&&data.length>0){
@@ -444,7 +447,6 @@ const CategoriesPage = ({ setPage }) => {
 
   const addCategory = async () => {
     if (!newCat.name.trim()) return;
-    // Supabase'e kaydet
     const res = await sb.post("categories", { name:newCat.name.trim(), icon:newCat.icon, color:newCat.color, complaint_count:0, is_custom:true });
     const newId = (res&&res[0])?res[0].id:Date.now();
     setCategories(prev=>[...prev, { id:newId, ...newCat, name:newCat.name.trim(), count:0, custom:true }]);
@@ -461,8 +463,6 @@ const CategoriesPage = ({ setPage }) => {
         </div>
         <button style={btn("primary")} onClick={()=>setShowAdd(true)}>+ Yeni Kategori Ekle</button>
       </div>
-
-      {/* Preset categories */}
       <div style={{ marginBottom:28 }}>
         <h2 style={{ fontSize:15, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:.8, marginBottom:14 }}>Standart Kategoriler</h2>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))", gap:14 }}>
@@ -482,8 +482,6 @@ const CategoriesPage = ({ setPage }) => {
           ))}
         </div>
       </div>
-
-      {/* Custom categories */}
       {categories.filter(c=>c.custom).length > 0 && (
         <div>
           <h2 style={{ fontSize:15, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:.8, marginBottom:14 }}>Kullanıcı Kategorileri</h2>
@@ -503,8 +501,6 @@ const CategoriesPage = ({ setPage }) => {
           </div>
         </div>
       )}
-
-      {/* No custom yet */}
       {categories.filter(c=>c.custom).length === 0 && (
         <div style={{ ...card, textAlign:"center", padding:36, background:"#fafbfc", border:`2px dashed ${C.border}` }}>
           <div style={{ fontSize:36, marginBottom:10 }}>📂</div>
@@ -513,11 +509,9 @@ const CategoriesPage = ({ setPage }) => {
           <button style={btn("primary")} onClick={()=>setShowAdd(true)}>+ İlk Kategoriyi Ekle</button>
         </div>
       )}
-
-      {/* Add modal */}
       <Modal open={showAdd} onClose={()=>setShowAdd(false)} title="Yeni Kategori Ekle">
         <FormRow label="Kategori Adı">
-          <input style={inp} placeholder="Örn: Çevre Sorunları, Gürültü Şikayetleri..." value={newCat.name} onChange={e=>setNewCat({...newCat, name:e.target.value})} />
+          <input style={inp} placeholder="Örn: Çevre Sorunları..." value={newCat.name} onChange={e=>setNewCat({...newCat, name:e.target.value})} />
         </FormRow>
         <FormRow label="İkon Seç">
           <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
@@ -533,7 +527,6 @@ const CategoriesPage = ({ setPage }) => {
             ))}
           </div>
         </FormRow>
-        {/* Preview */}
         <div style={{ ...card, display:"flex", alignItems:"center", gap:12, marginBottom:20, borderLeft:`4px solid ${newCat.color}` }}>
           <div style={{ fontSize:26 }}>{newCat.icon}</div>
           <div>
@@ -618,7 +611,6 @@ const ComplaintsPage = ({ setPage, setSelected }) => {
             </div>
           ))}
         </div>
-        {/* Sidebar */}
         <div style={{ width:248, flexShrink:0 }}>
           <div style={{ ...card, marginBottom:14 }}>
             <h3 style={{ margin:"0 0 14px", fontSize:14.5, color:C.primary, fontWeight:700 }}>Kategoriler</h3>
@@ -679,7 +671,6 @@ const DetailPage = ({ complaint, setPage, user }) => {
               <span style={{ marginLeft:"auto", fontSize:12.5, color:C.muted }}>👁 {complaint.views.toLocaleString()}</span>
             </div>
           </div>
-          {/* Comments */}
           <div style={{ marginTop:22 }}>
             <h2 style={{ fontSize:17, color:C.primary, marginBottom:14, fontWeight:700 }}>Yorumlar ({comments.length})</h2>
             {comments.map(c=>(
@@ -711,7 +702,6 @@ const DetailPage = ({ complaint, setPage, user }) => {
             )}
           </div>
         </div>
-        {/* Sidebar */}
         <div style={{ width:240, flexShrink:0 }}>
           <div style={{ ...card, marginBottom:14 }}>
             <h3 style={{ margin:"0 0 14px", fontSize:14.5, color:C.primary, fontWeight:700 }}>Durum Takibi</h3>
@@ -742,10 +732,10 @@ const AIComplaintPage = ({ user, setPage }) => {
     { role:"ai", text:"Merhaba! Şikayetinizi birlikte oluşturalım. Hangi kurum veya işletme hakkında şikayetiniz var?" }
   ]);
   const [input, setInput] = useState("");
-  const [step, setStep] = useState(1); // 1=company, 2=category, 3=detail, 4=preview
+  const [step, setStep] = useState(1);
   const [draft, setDraft] = useState({ company:"", category:"", title:"", body:"" });
   const [isTyping, setIsTyping] = useState(false);
-  const [useForm, setUseForm] = useState(true); // true = form mode default
+  const [useForm, setUseForm] = useState(true);
   const msgRef = useRef(null);
 
   const scrollToBottom = () => { if(msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight; };
@@ -760,35 +750,33 @@ const AIComplaintPage = ({ user, setPage }) => {
       const catIdx = parseInt(input) - 1;
       const catName = PRESET_CATEGORIES[catIdx]?.name || input;
       setDraft(d => ({...d, category: catName}));
-      return { text:`"${catName}" kategorisini seçtiniz. ✅\n\nŞimdi yaşadığınız sorunu detaylıca anlatın. Ne oldu, ne zaman oldu, ne bekliyorsunuz? Ne kadar detaylı yazarsanız o kadar etkili olur.`, next: 3 };
+      return { text:`"${catName}" kategorisini seçtiniz. ✅\n\nŞimdi yaşadığınız sorunu detaylıca anlatın.`, next: 3 };
     },
     3: (input) => {
       const title = input.length > 60 ? input.substring(0,57)+"..." : input;
       setDraft(d => ({...d, body: input, title: title}));
-      return { text:`Şikayetiniz hazırlanıyor... 🤖\n\n**Oluşturulan Şikayet Özeti:**\n📍 Kurum: ${draft.company}\n📁 Kategori: ${draft.category}\n📝 Başlık: "${title}"\n\nŞikayetinizi yayınlamak için 'Onayla ve Yayınla' yazın, düzenlemek için 'Düzenle' yazın.`, next: 4 };
+      return { text:`Şikayetiniz hazırlanıyor... 🤖\n\n**Oluşturulan Şikayet:**\n📍 Kurum: ${draft.company}\n📁 Kategori: ${draft.category}\n📝 Başlık: "${title}"\n\nOnayla ve Yayınla yazın veya Düzenle yazın.`, next: 4 };
     },
     4: (input) => {
       if (input.toLowerCase().includes("onayla")) {
-        // Supabase'e kaydet
         const title = draft.title || draft.body.substring(0,60) + "...";
         sb.post("complaints", {
-          title: title,
-          body: draft.body,
-          category: draft.category || "Diğer",
-          company: draft.company,
-          author_name: user?.name || "Anonim",
-          author_avatar: user?.avatar || "?",
-          status: "Açık",
-          views: 0,
-          votes: 0,
-          comments_count: 0,
-          is_published: true
+          title, body: draft.body, category: draft.category || "Diğer",
+          company: draft.company, author_name: user?.name || "Anonim",
+          author_avatar: user?.avatar || "?", status: "Açık",
+          views: 0, votes: 0, comments_count: 0, is_published: true
         }).then(res => {
           if (res && res[0]) {
-            setStep(5);
+            // Şikayet yayınlanınca e-posta gönder
+            if (user?.email) {
+              sendEmail("complaint_reply", user.email, {
+                name: user.name,
+                complaintTitle: title,
+              });
+            }
           }
         }).catch(() => {});
-        return { text:"✅ Şikayetiniz Supabase veritabanına kaydedildi ve yayınlandı!\n\n📋 Kurum: " + draft.company + "\n📁 Kategori: " + (draft.category||"Diğer") + "\n\nYanıt geldiğinde bilgilendirileceksiniz.", next:5 };
+        return { text:"✅ Şikayetiniz kaydedildi ve yayınlandı!\n\n📋 Kurum: " + draft.company + "\n📁 Kategori: " + (draft.category||"Diğer") + "\n\nYanıt geldiğinde e-posta ile bilgilendirileceksiniz.", next:5 };
       }
       return { text:"Hangi kısmı değiştirmek istiyorsunuz? (kurum / kategori / detay)", next:3 };
     }
@@ -828,7 +816,6 @@ const AIComplaintPage = ({ user, setPage }) => {
 
   return (
     <div style={{ display:"flex", height:"calc(100vh - 130px)" }}>
-      {/* Left panel */}
       <div style={{ width:220, background:C.navy, display:"flex", flexDirection:"column", padding:24, gap:16 }}>
         <div>
           <div style={{ width:48, height:48, borderRadius:12, background:C.purple, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, marginBottom:12 }}>✏️</div>
@@ -849,17 +836,14 @@ const AIComplaintPage = ({ user, setPage }) => {
         </div>
       </div>
 
-      {/* Right: Chat or Form */}
       {!useForm ? (
         <div style={{ flex:1, display:"flex", flexDirection:"column", background:"#f8fafc" }}>
-          {/* Top bar */}
           <div style={{ padding:"12px 20px", borderBottom:`1px solid ${C.border}`, background:"#fff", display:"flex", alignItems:"center", gap:12 }}>
             <Avatar initials={user.avatar} size={28} />
             <div style={{ flex:1, display:"flex", gap:14, justifyContent:"center", fontSize:13, color:C.muted }}>
               <span>Şikayetler</span><span>Trend100</span><span>TV</span>
             </div>
           </div>
-          {/* Messages */}
           <div ref={msgRef} style={{ flex:1, overflowY:"auto", padding:24, display:"flex", flexDirection:"column", gap:14 }}>
             {messages.map((m,i)=>(
               <div key={i} style={{ display:"flex", justifyContent: m.role==="user" ? "flex-end" : "flex-start" }}>
@@ -870,20 +854,16 @@ const AIComplaintPage = ({ user, setPage }) => {
             ))}
             {isTyping && (
               <div style={{ display:"flex" }}>
-                <div style={{ background:"#fff", padding:"11px 16px", borderRadius:"4px 16px 16px 16px", fontSize:14, color:C.muted, boxShadow:"0 1px 3px rgba(0,0,0,.08)" }}>
-                  <span style={{ animation:"pulse 1s infinite" }}>● ● ●</span>
-                </div>
+                <div style={{ background:"#fff", padding:"11px 16px", borderRadius:"4px 16px 16px 16px", fontSize:14, color:C.muted, boxShadow:"0 1px 3px rgba(0,0,0,.08)" }}>● ● ●</div>
               </div>
             )}
           </div>
-          {/* Input */}
           <div style={{ padding:"14px 20px", borderTop:`1px solid ${C.border}`, background:"#fff", display:"flex", gap:10 }}>
             <input style={{ ...inp, flex:1 }} placeholder="Cevabınızı buraya yazın..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} />
             <button style={{ width:42, height:42, borderRadius:"50%", background: input.trim() ? C.green : C.border, border:"none", cursor: input.trim() ? "pointer" : "default", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:16, flexShrink:0 }} onClick={send}>➤</button>
           </div>
         </div>
       ) : (
-        // Form mode
         <div style={{ flex:1, padding:32, overflowY:"auto", background:"#f8fafc" }}>
           <h2 style={{ margin:"0 0 24px", color:C.primary, fontSize:20, fontWeight:700 }}>Şikayet Formu</h2>
           <div style={{ ...card, maxWidth:580 }}>
@@ -894,23 +874,20 @@ const AIComplaintPage = ({ user, setPage }) => {
               <select style={inp} value={draft.category} onChange={e=>setDraft({...draft, category:e.target.value})}>
                 <option value="">Seçin</option>
                 {PRESET_CATEGORIES.map(c=><option key={c.id} value={c.name}>{c.icon} {c.name}</option>)}
-                <option value="">──────────</option>
                 <option value="__new__">➕ Yeni Kategori Ekle...</option>
               </select>
             </FormRow>
             {draft.category === "__new__" && (
               <FormRow label="Yeni Kategori Adı">
                 <div style={{ display:"flex", gap:8 }}>
-                  <input style={{ ...inp, flex:1 }} placeholder="Örn: Otel Şikayeti, Araç Tamiri..." value={draft.newCatName||""} onChange={e=>setDraft({...draft, newCatName:e.target.value})} />
+                  <input style={{ ...inp, flex:1 }} placeholder="Örn: Otel Şikayeti..." value={draft.newCatName||""} onChange={e=>setDraft({...draft, newCatName:e.target.value})} />
                   <button style={btn("primary","sm")} onClick={async()=>{
                     if (!draft.newCatName?.trim()) return;
                     const catName = draft.newCatName.trim();
-                    // Supabase'e kaydet
                     await sb.post("categories", { name:catName, icon:"📌", color:C.blue, complaint_count:0, is_custom:true });
                     setDraft({...draft, category:catName, newCatName:""});
                   }}>Ekle</button>
                 </div>
-                <div style={{ fontSize:12, color:C.muted, marginTop:4 }}>Bu kategori kategoriler listesine eklenecek</div>
               </FormRow>
             )}
             <FormRow label="Kurum / İşletme">
@@ -930,17 +907,19 @@ const AIComplaintPage = ({ user, setPage }) => {
                 return;
               }
               const res = await sb.post("complaints", {
-                title: draft.title,
-                body: draft.body,
-                category: draft.category,
-                company: draft.company,
-                author_name: user?.name || "Anonim",
-                author_avatar: user?.avatar || "?",
-                status: "Açık",
-                views: 0, votes: 0, comments_count: 0,
-                is_published: true
+                title: draft.title, body: draft.body, category: draft.category,
+                company: draft.company, author_name: user?.name || "Anonim",
+                author_avatar: user?.avatar || "?", status: "Açık",
+                views: 0, votes: 0, comments_count: 0, is_published: true
               });
               if (res && res[0]) {
+                // Şikayet yayınlanınca bildirim maili gönder
+                if (user?.email) {
+                  sendEmail("complaint_reply", user.email, {
+                    name: user.name,
+                    complaintTitle: draft.title,
+                  });
+                }
                 alert("✅ Şikayetiniz başarıyla kaydedildi!");
                 setPage("complaints");
               } else {
@@ -1025,7 +1004,18 @@ const RegisterPage = ({ setPage, setUser }) => {
           </div>
           <div style={{ display:"flex", gap:10 }}>
             <button style={{ ...btn("ghost"), flex:1 }} onClick={()=>setStep(1)}>← Geri</button>
-            <button style={{ ...btn("success"), flex:1 }} onClick={()=>{ setUser({ name:`${form.firstName} ${form.lastName}`, email:form.email, avatar:(form.firstName[0]+(form.lastName[0]||"")).toUpperCase(), role:"user" }); setPage("home"); }} disabled={!form.pass||!form.agree}>✓ Kayıt Ol</button>
+            <button style={{ ...btn("success"), flex:1 }} onClick={async ()=>{
+              const newUser = {
+                name: `${form.firstName} ${form.lastName}`,
+                email: form.email,
+                avatar: (form.firstName[0]+(form.lastName[0]||"")).toUpperCase(),
+                role: "user"
+              };
+              setUser(newUser);
+              // Hoşgeldin e-postası gönder
+              sendEmail("welcome", form.email, { name: form.firstName });
+              setPage("home");
+            }} disabled={!form.pass||!form.agree}>✓ Kayıt Ol</button>
           </div>
         </>}
         <div style={{ textAlign:"center", marginTop:14, fontSize:13.5 }}>
@@ -1060,7 +1050,6 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
 
   return (
     <div style={{ display:"flex", minHeight:"calc(100vh - 130px)" }}>
-      {/* Sidebar */}
       <div style={{ width:220, background:C.navy, flexShrink:0 }}>
         <div style={{ padding:"20px 16px 12px" }}>
           {sideItems.map(item=>(
@@ -1078,13 +1067,9 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
         </div>
       </div>
 
-      {/* Content */}
       <div style={{ flex:1, padding:32, background:"#f5f7fb", overflowY:"auto" }}>
-
-        {/* Profile */}
         {tab==="profile" && (
           <div style={{ maxWidth:680 }}>
-            {/* Header */}
             <div style={{ display:"flex", alignItems:"center", gap:18, marginBottom:24 }}>
               <div style={{ position:"relative" }}>
                 <Avatar initials={user.avatar} size={72} bg={C.primary} />
@@ -1096,7 +1081,6 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
                   <button style={btn("ghost","sm")}>Kaldır</button>
                 </div>
               </div>
-              {/* Strength */}
               <div style={{ marginLeft:"auto", ...card, minWidth:220 }}>
                 <div style={{ fontSize:13.5, fontWeight:600, marginBottom:6 }}>Profilinizin Gücü: <span style={{ color:C.green }}>%{profileStrength}</span></div>
                 <div style={{ height:6, borderRadius:3, background:C.border, marginBottom:10 }}>
@@ -1109,7 +1093,6 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
                 ))}
               </div>
             </div>
-            {/* Stats */}
             <div style={{ display:"flex", gap:16, marginBottom:24 }}>
               {[["Şikayetlerin","8"],["Desteklerin","24"],["Yaptığın Yorumlar","12"]].map(([l,v])=>(
                 <div key={l} style={{ ...card, flex:1, textAlign:"center", padding:14 }}>
@@ -1118,7 +1101,6 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
                 </div>
               ))}
             </div>
-            {/* Form */}
             <div style={card}>
               {[["Ad Soyad","name","text"],["E-Posta","email","email"],["Telefon","phone","tel"],["Şifre","password","password"]].map(([l,k,t])=>(
                 <div key={k} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 0", borderBottom:`1px solid ${C.border}` }}>
@@ -1136,7 +1118,6 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
           </div>
         )}
 
-        {/* Notification Preferences */}
         {tab==="notif-prefs" && (
           <div style={{ maxWidth:680 }}>
             <h2 style={{ margin:"0 0 18px", fontSize:20, color:C.text, fontWeight:700 }}>Bildirim Tercihleri</h2>
@@ -1149,11 +1130,8 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
             </div>
             {[
               { key:"solutionBrowser", label:"Desteklediğiniz şikayetin çözüm bilgilendirmesi", sub:[{k:"solutionBrowser",l:"Tarayıcı"},{k:"solutionEmail",l:"E-Posta"}], expanded:true },
-              { key:"passwordChange", label:"Şifre Değiştirme İşleminde İlgili Kullanıcının Bilgilendirilmesi", sub:[], expanded:false },
+              { key:"passwordChange", label:"Şifre Değiştirme İşleminde Bilgilendirme", sub:[], expanded:false },
               { key:"complaintReview", label:"Şikayet değerlendirmesi hakkında bilgilendirmeler", sub:[], expanded:false },
-              { key:"complaintChat", label:"Şikayet sohbet bildirimi", sub:[], expanded:false },
-              { key:"smsPromo", label:"Şikayetçiye uygulama tanıtım SMS'i gönderilmesi", sub:[], expanded:false },
-              { key:"unpublished", label:"Şikayetin yayınlanamaması hakkında bilgilendirmeler", sub:[], expanded:false },
               { key:"replyNotif", label:"Şikayetinize gelen cevap hakkında bilgilendirmeler", sub:[], expanded:false },
               { key:"commentNotif", label:"Şikayetinize yapılan yorumlar hakkında bilgilendirmeler", sub:[], expanded:false },
             ].map((item,i)=>(
@@ -1178,7 +1156,6 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
           </div>
         )}
 
-        {/* My Complaints */}
         {tab==="my-complaints" && (
           <div style={{ maxWidth:680 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
@@ -1188,23 +1165,6 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
               </div>
               <button style={btn("accent","sm")} onClick={()=>setPage("new-complaint")}>+ Yeni Şikayet</button>
             </div>
-            {/* Example: unpublished complaint */}
-            <div style={{ ...card, borderLeft:`4px solid ${C.light}` }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                <div style={{ flex:1 }}>
-                  <div style={{ marginBottom:6 }}>
-                    <Badge s="Yayınlanamadı" />
-                  </div>
-                  <h3 style={{ margin:"0 0 6px", fontSize:15, color:C.text }}>Philips TV Ayıplı Ürün Satıp Ürününün Arkasında Durmuyor</h3>
-                  <div style={{ fontSize:12.5, color:C.muted, marginBottom:10 }}>28 Aralık 2016 09:59</div>
-                  <div style={{ ...card, background:"#fef9c3", borderColor:C.amber, padding:"10px 14px", fontSize:13, color:"#92400e" }}>
-                    <strong>Zamanaşımı:</strong> Şikayetinizde belirttiğiniz olay platform kuralımız gereği üç yıllık zaman aşımı süresini aşmış durumda. Eğer hâlen devam eden güncel bir mağduriyet s<span style={{ color:C.blue, cursor:"pointer" }}>...</span>
-                  </div>
-                </div>
-                <button style={{ ...btn("ghost","sm"), marginLeft:12 }}>⋯</button>
-              </div>
-            </div>
-            {/* Active complaints */}
             {MOCK_COMPLAINTS.slice(0,2).map(c=>(
               <div key={c.id} style={{ ...card, marginTop:10, borderLeft:`4px solid ${STATUS_MAP[c.status]?.dot}` }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
@@ -1219,20 +1179,10 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
           </div>
         )}
 
-        {/* Notifications */}
         {tab==="notifications" && (
           <div style={{ maxWidth:680 }}>
             <h2 style={{ margin:"0 0 20px", fontSize:20, color:C.text, fontWeight:700 }}>Bildirimlerim</h2>
             <div style={{ ...card }}>
-              <div style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 0", borderBottom:`1px solid ${C.border}` }}>
-                <div style={{ width:38, height:38, borderRadius:8, background:"#fef3c7", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>📋</div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:600, fontSize:14 }}>Müşteri Deneyimi Anketi</div>
-                  <div style={{ fontSize:13, color:C.muted }}>Sahip olduğunuz ürünlerle ilgili deneyimlerinizi paylaşır mısınız?</div>
-                </div>
-                <span style={{ fontSize:12, color:C.muted }}>22 Mart 20:32</span>
-                <span style={{ width:8, height:8, borderRadius:"50%", background:C.green, flexShrink:0 }} />
-              </div>
               {[
                 { icon:"💬", t:"Şikayetinize yeni bir yorum yapıldı", time:"2 saat önce", read:false },
                 { icon:"✅", t:"Şikayetiniz çözüldü olarak işaretlendi", time:"1 gün önce", read:true },
@@ -1251,14 +1201,12 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
           </div>
         )}
 
-        {/* Empty states */}
         {["supported","commented","saved"].includes(tab) && (
           <div style={{ maxWidth:680, textAlign:"center", padding:60 }}>
             <div style={{ width:100, height:100, borderRadius:"50%", background:C.border, margin:"0 auto 20px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:36, color:"#fff" }}>
               {tab==="supported"?"✍️":tab==="commented"?"✍️":"🔖"}
             </div>
             <h3 style={{ fontSize:18, color:C.text, marginBottom:8 }}>{tab==="saved"?"Henüz Şikayetiniz Yok":"Sorgunuza ait bir şikayet bulunamadı."}</h3>
-            {tab==="saved" && <p style={{ color:C.muted, fontSize:14 }}>Kaydettiğiniz şikayetleri buradan takip edebilirsiniz.</p>}
           </div>
         )}
 
@@ -1270,7 +1218,7 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
                 <div style={{ width:44, height:44, borderRadius:10, background:"#ede9fe", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>📋</div>
                 <div>
                   <h3 style={{ margin:"0 0 5px", fontSize:15 }}>Kişisel Ürün Markalarınız</h3>
-                  <p style={{ margin:"0 0 10px", fontSize:13.5, color:C.muted }}>Sahip olduğunuz ürün markalarını belirleyin, size özel içerikler gösterelim.</p>
+                  <p style={{ margin:"0 0 10px", fontSize:13.5, color:C.muted }}>Sahip olduğunuz ürün markalarını belirleyin.</p>
                   <button style={btn("purple","sm")}>Ankete Katıl</button>
                 </div>
               </div>
@@ -1278,13 +1226,12 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
           </div>
         )}
 
-        {/* Delete Account */}
         {tab==="delete-acc" && (
           <div style={{ maxWidth:500 }}>
             <h2 style={{ margin:"0 0 18px", fontSize:20, fontWeight:700, color:C.red }}>Hesabımı Sil</h2>
             <div style={{ ...card, borderLeft:`4px solid ${C.red}` }}>
               <div style={{ marginBottom:16 }}>
-                <p style={{ color:C.text, fontSize:14.5, lineHeight:1.6 }}>Hesabınızı silmek kalıcı bir işlemdir. Tüm şikayetleriniz, yorumlarınız ve profil bilgileriniz silinecektir.</p>
+                <p style={{ color:C.text, fontSize:14.5, lineHeight:1.6 }}>Hesabınızı silmek kalıcı bir işlemdir.</p>
                 <ul style={{ color:C.muted, fontSize:13.5, lineHeight:1.8, paddingLeft:18 }}>
                   <li>Tüm şikayetleriniz kaldırılacak</li>
                   <li>Yorumlarınız ve oylarınız silinecek</li>
@@ -1305,13 +1252,11 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
 };
 
-// ─── ADMIN PANEL ─────────────────────────────────────────────
 // ─── ADMIN CATEGORIES TAB ────────────────────────────────────
 const AdminCategoriesTab = () => {
   const [allCats, setAllCats] = useState(PRESET_CATEGORIES);
@@ -1324,7 +1269,6 @@ const AdminCategoriesTab = () => {
     sb.get("categories","?order=is_custom.asc,created_at.desc").then(data=>{
       if(data&&data.length>0){
         const dbCats = data.map(c=>({ id:c.id, name:c.name, icon:c.icon||"📌", color:c.color||C.blue, count:c.complaint_count||0, custom:c.is_custom }));
-        // Preset'leri DB'deki isimlerle birleştir, tekrar olmasın
         const dbNames = dbCats.map(c=>c.name);
         const presets = PRESET_CATEGORIES.filter(p=>!dbNames.includes(p.name));
         setAllCats([...presets, ...dbCats.filter(c=>c.custom)]);
@@ -1354,7 +1298,7 @@ const AdminCategoriesTab = () => {
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:18,flexWrap:"wrap",gap:10}}>
         <div>
           <h2 style={{margin:0,fontSize:20,color:C.primary,fontWeight:700}}>Kategori Yönetimi</h2>
-          <p style={{margin:"4px 0 0",fontSize:13,color:C.muted}}>{allCats.length} kategori · {allCats.filter(c=>c.custom).length} kullanıcı tarafından eklendi</p>
+          <p style={{margin:"4px 0 0",fontSize:13,color:C.muted}}>{allCats.length} kategori</p>
         </div>
         <button style={btn("primary")} onClick={()=>setShowAdd(!showAdd)}>+ Yeni Kategori Ekle</button>
       </div>
@@ -1403,7 +1347,7 @@ const AdminCategoriesTab = () => {
                 <span style={{fontSize:24}}>{cat.icon}</span>
                 <div><div style={{fontWeight:600,fontSize:13.5}}>{cat.name}</div><div style={{fontSize:12,color:C.muted}}>{cat.count.toLocaleString()} şikayet</div></div>
               </div>
-              <button style={btn("ghost","sm")} title="Standart kategoriler düzenlenemez" disabled>🔒</button>
+              <button style={btn("ghost","sm")} disabled>🔒</button>
             </div>
           </div>
         ))}
@@ -1424,27 +1368,17 @@ const AdminCategoriesTab = () => {
           ))}
         </div>
       </>)}
-
-      {allCats.filter(c=>c.custom).length===0 && (
-        <div style={{...card,textAlign:"center",padding:32,background:"#fafbfc",border:`2px dashed ${C.border}`}}>
-          <div style={{fontSize:32,marginBottom:8}}>📂</div>
-          <h3 style={{margin:"0 0 6px",color:C.primary}}>Henüz Kullanıcı Kategorisi Yok</h3>
-          <p style={{color:C.muted,fontSize:13.5,marginBottom:14}}>Kullanıcılar yeni kategori ekleyebilir veya siz buradan ekleyebilirsiniz.</p>
-          <button style={btn("primary")} onClick={()=>setShowAdd(true)}>+ İlk Kategoriyi Ekle</button>
-        </div>
-      )}
     </div>
   );
 };
 
 // ─── ADMIN COMPLAINTS TAB ───────────────────────────────────
 const AdminComplaintsTab = ({ complaints, setComplaints, deleteComplaint, updateStatus, loadingComplaints }) => {
-  // Local style helpers (AdminPanel scope'undan bağımsız)
   const th = { padding:"11px 14px", textAlign:"left", background:"#f8fafc", fontWeight:600, color:C.muted, fontSize:11.5, textTransform:"uppercase", letterSpacing:.5, borderBottom:`2px solid ${C.border}` };
   const td_ = { padding:"13px 14px", borderBottom:`1px solid ${C.border}`, verticalAlign:"middle", fontSize:13.5 };
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [sortDir, setSortDir] = useState("desc"); // desc = yeniden eskiye, asc = eskiden yeniye
+  const [sortDir, setSortDir] = useState("desc");
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({});
 
@@ -1472,7 +1406,7 @@ const AdminComplaintsTab = ({ complaints, setComplaints, deleteComplaint, update
           <span style={{ fontSize:13, color:C.muted, background:"#f1f5f9", padding:"3px 10px", borderRadius:20 }}>{filtered.length} şikayet</span>
         </div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-          <input style={{ ...inp, width:200 }} placeholder="Şikayet / kurum / yazar ara..." value={search} onChange={e=>setSearch(e.target.value)} />
+          <input style={{ ...inp, width:200 }} placeholder="Ara..." value={search} onChange={e=>setSearch(e.target.value)} />
           <select style={{ ...inp, width:"auto" }} value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
             <option value="all">Tüm Durumlar</option>
             <option value="Açık">Açık</option>
@@ -1526,9 +1460,8 @@ const AdminComplaintsTab = ({ complaints, setComplaints, deleteComplaint, update
                         </>
                       ) : (
                         <>
-                          <button title="İncele" style={btn("ghost","sm")} onClick={()=>{ setEditingId(null); alert("Şikayet:\n\n" + c.title + "\n\nYazar: " + c.author + "\nKurum: " + c.company + "\nDurum: " + c.status + "\n\n" + c.body); }}>🔍 İncele</button>
-                          <button title="Düzenle" style={btn("secondary","sm")} onClick={()=>startEdit(c)}>✏️ Düzenle</button>
-                          <button title="Sil" style={btn("danger","sm")} onClick={()=>deleteComplaint(c.id)}>🗑</button>
+                          <button style={btn("secondary","sm")} onClick={()=>startEdit(c)}>✏️ Düzenle</button>
+                          <button style={btn("danger","sm")} onClick={()=>deleteComplaint(c.id)}>🗑</button>
                         </>
                       )}
                     </div>
@@ -1537,7 +1470,6 @@ const AdminComplaintsTab = ({ complaints, setComplaints, deleteComplaint, update
                 {editingId===c.id && (
                   <tr style={{ background:"#f0f9ff" }}>
                     <td colSpan={6} style={{ ...td_, paddingTop:0 }}>
-                      <div style={{ fontSize:12, color:C.muted, marginBottom:4 }}>Şikayet İçeriği:</div>
                       <textarea style={{ ...inp, minHeight:80, fontSize:12 }} value={editData.body} onChange={e=>setEditData({...editData,body:e.target.value})} />
                     </td>
                   </tr>
@@ -1562,7 +1494,6 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
   const [complaints, setComplaints] = useState(MOCK_COMPLAINTS);
   const [loadingComplaints, setLoadingComplaints] = useState(false);
 
-  // Supabase'den şikayetleri çek
   useEffect(() => {
     setLoadingComplaints(true);
     sb.get("complaints", "?order=created_at.desc")
@@ -1572,7 +1503,8 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
             id: c.id, title: c.title, body: c.body, category: c.category,
             company: c.company, author: c.author_name, avatar: c.author_avatar,
             date: new Date(c.created_at).toLocaleDateString("tr-TR", {day:"numeric",month:"long",year:"numeric"}),
-            views: c.views, votes: c.votes, comments: c.comments_count, status: c.status
+            views: c.views, votes: c.votes, comments: c.comments_count, status: c.status,
+            author_email: c.author_email
           }));
           setComplaints(mapped);
         }
@@ -1580,7 +1512,6 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
       }).catch(() => setLoadingComplaints(false));
   }, []);
 
-  // Şikayet sil - Supabase'den gerçekten sil
   const deleteComplaint = async (id) => {
     if (!window.confirm("Bu şikayeti kalıcı olarak silmek istediğinizden emin misiniz?")) return;
     const ok = await sb.delete("complaints", id);
@@ -1592,15 +1523,29 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
     }
   };
 
-  // Şikayet durumu güncelle - Supabase'de gerçekten güncelle
+  // Durum güncellenince e-posta gönder
   const updateStatus = async (id, newStatus) => {
     const ok = await sb.patch("complaints", id, { status: newStatus });
     if (ok) {
-      setComplaints(prev => prev.map(x => x.id === id ? {...x, status: newStatus} : x));
+      setComplaints(prev => prev.map(x => {
+        if (x.id === id) {
+          // Durum değiştiyse e-posta gönder
+          if (x.author_email && x.status !== newStatus) {
+            sendEmail("status_update", x.author_email, {
+              name: x.author,
+              complaintTitle: x.title,
+              status: newStatus,
+            });
+          }
+          return {...x, status: newStatus};
+        }
+        return x;
+      }));
     } else {
       alert("Güncelleme başarısız.");
     }
   };
+
   const [footerData, setFooterData] = useState(initFooterData || {
     desc: "KKTC'nin bağımsız şikayet platformu. Sesinizi duyurun, değişim yaratın.",
     columns: [
@@ -1613,9 +1558,9 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
     facebook: "sikayetetkktc",
     twitter: "sikayetetkktc",
   });
-  // Sync footer to parent
-  useEffect(()=>{ if(setParentFooterData) setParentFooterData(footerData); },[footerData]);
   const [settings, setSettings] = useState({ siteName:"ŞikayetETKKTC", siteUrl:"https://sikayetetkktc.com", metaTitle:"ŞikayetETKKTC - KKTC'nin Güvenilir Şikayet Platformu", metaDesc:"KKTC'de kamu ve özel kurumlar hakkında şikayetlerinizi bildirin.", ga:"G-XXXXXXXXXX", primaryColor:C.primary, accentColor:C.accent, contactEmail:"info@sikayetetkktc.com", phone:"+90 392 000 00 00" });
+
+  useEffect(()=>{ if(setParentFooterData) setParentFooterData(footerData); },[footerData]);
 
   const sideItems = [
     { id:"dashboard", icon:"📊", l:"Dashboard" },
@@ -1729,69 +1674,29 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
           </div>
         )}
 
-        {tab==="categories" && (
-          <AdminCategoriesTab />
-        )}
+        {tab==="categories" && <AdminCategoriesTab />}
 
         {tab==="footer-edit" && (
           <div style={{ maxWidth:720 }}>
             <h2 style={{ margin:"0 0 6px", fontSize:20, color:C.primary, fontWeight:700 }}>Footer Yönetimi</h2>
-            <p style={{ color:C.muted, fontSize:14, marginBottom:22 }}>Footer içeriğini, linklerini ve sosyal medya hesaplarını düzenleyin.</p>
             <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-              {/* Açıklama metni */}
-              <div style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:12, padding:22, boxShadow:"0 1px 4px rgba(0,0,0,.05)" }}>
+              <div style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:12, padding:22 }}>
                 <h3 style={{ margin:"0 0 16px", fontSize:15, color:C.primary, fontWeight:700 }}>📝 Açıklama Metni</h3>
                 <FormRow label="Kısa Açıklama">
-                  <textarea style={{ ...inp, minHeight:70 }} value={footerData.desc}
-                    onChange={e=>setFooterData({...footerData,desc:e.target.value})} />
+                  <textarea style={{ ...inp, minHeight:70 }} value={footerData.desc} onChange={e=>setFooterData({...footerData,desc:e.target.value})} />
                 </FormRow>
                 <FormRow label="Telif Hakkı Metni">
-                  <input style={inp} value={footerData.copyright}
-                    onChange={e=>setFooterData({...footerData,copyright:e.target.value})} />
+                  <input style={inp} value={footerData.copyright} onChange={e=>setFooterData({...footerData,copyright:e.target.value})} />
                 </FormRow>
               </div>
-              {/* Sosyal medya */}
-              <div style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:12, padding:22, boxShadow:"0 1px 4px rgba(0,0,0,.05)" }}>
-                <h3 style={{ margin:"0 0 16px", fontSize:15, color:C.primary, fontWeight:700 }}>📱 Sosyal Medya Hesapları</h3>
-                {[["instagram","Instagram","linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)",IGIcon],
-                  ["facebook","Facebook","#1877F2",FBIcon],
-                  ["twitter","X (Twitter)","#000",TWIcon]].map(([key,label,bg,Icon])=>(
+              <div style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:12, padding:22 }}>
+                <h3 style={{ margin:"0 0 16px", fontSize:15, color:C.primary, fontWeight:700 }}>📱 Sosyal Medya</h3>
+                {[["instagram","Instagram"],["facebook","Facebook"],["twitter","X (Twitter)"]].map(([key,label])=>(
                   <FormRow key={key} label={label}>
-                    <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-                      <div style={{ width:36, height:36, borderRadius:8, background:bg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                        <Icon size={18} color="#fff" />
-                      </div>
-                      <input style={{ ...inp, flex:1 }} placeholder="kullanici_adi"
-                        value={footerData[key]||""}
-                        onChange={e=>setFooterData({...footerData,[key]:e.target.value})} />
-                      <a href={`https://${key==="twitter"?"twitter":"instagram"==="instagram"?key==="facebook"?"facebook.com":"instagram.com":"twitter.com"}/${footerData[key]}`}
-                        target="_blank" rel="noopener noreferrer"
-                        style={{ ...btn("ghost","sm"), textDecoration:"none" }}>↗</a>
-                    </div>
+                    <input style={inp} placeholder="kullanici_adi" value={footerData[key]||""} onChange={e=>setFooterData({...footerData,[key]:e.target.value})} />
                   </FormRow>
                 ))}
               </div>
-              {/* Footer kolonları */}
-              {footerData.columns.map((col,ci)=>(
-                <div key={ci} style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:12, padding:22, boxShadow:"0 1px 4px rgba(0,0,0,.05)" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-                    <h3 style={{ margin:0, fontSize:15, color:C.primary, fontWeight:700 }}>
-                      🔗 Kolon: <input style={{ ...inp, display:"inline-block", width:"auto", padding:"3px 8px", fontSize:14, fontWeight:700 }}
-                        value={col.title} onChange={e=>{const cols=[...footerData.columns];cols[ci]={...cols[ci],title:e.target.value};setFooterData({...footerData,columns:cols});}} />
-                    </h3>
-                    <button style={btn("primary","sm")} onClick={()=>{const cols=[...footerData.columns];cols[ci]={...cols[ci],links:[...cols[ci].links,{label:"Yeni Link",url:"#"}]};setFooterData({...footerData,columns:cols});}}>+ Link Ekle</button>
-                  </div>
-                  {col.links.map((link,li)=>(
-                    <div key={li} style={{ display:"flex", gap:8, marginBottom:8, alignItems:"center" }}>
-                      <input style={{ ...inp, flex:2 }} placeholder="Link Adı" value={link.label}
-                        onChange={e=>{const cols=[...footerData.columns];cols[ci].links[li]={...link,label:e.target.value};setFooterData({...footerData,columns:cols});}} />
-                      <input style={{ ...inp, flex:3 }} placeholder="https://..." value={link.url}
-                        onChange={e=>{const cols=[...footerData.columns];cols[ci].links[li]={...link,url:e.target.value};setFooterData({...footerData,columns:cols});}} />
-                      <button style={btn("danger","sm")} onClick={()=>{const cols=[...footerData.columns];cols[ci].links=cols[ci].links.filter((_,i)=>i!==li);setFooterData({...footerData,columns:cols});}}>🗑</button>
-                    </div>
-                  ))}
-                </div>
-              ))}
               <div style={{ display:"flex", justifyContent:"flex-end" }}>
                 <button style={btn("success","lg")} onClick={()=>{ if(setParentFooterData) setParentFooterData(footerData); alert('Footer güncellendi! ✓'); }}>💾 Değişiklikleri Kaydet</button>
               </div>
@@ -1802,18 +1707,14 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
         {tab==="seo" && (
           <div style={{ maxWidth:680 }}>
             <h2 style={{ margin:"0 0 6px", fontSize:20, color:C.primary, fontWeight:700 }}>SEO Yönetimi</h2>
-            <p style={{ color:C.muted, fontSize:14, marginBottom:22 }}>Arama motoru optimizasyonu ayarları</p>
             <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
               <div style={card}>
                 <h3 style={{ margin:"0 0 18px", fontSize:15, color:C.primary, fontWeight:700 }}>🌐 Genel SEO</h3>
                 <FormRow label={`Site Başlığı (${settings.metaTitle.length}/60)`}>
-                  <input style={{ ...inp, borderColor: settings.metaTitle.length>60 ? C.red : C.border }} value={settings.metaTitle} onChange={e=>setSettings({...settings,metaTitle:e.target.value})} />
+                  <input style={inp} value={settings.metaTitle} onChange={e=>setSettings({...settings,metaTitle:e.target.value})} />
                 </FormRow>
                 <FormRow label={`Meta Açıklaması (${settings.metaDesc.length}/160)`}>
                   <textarea style={{ ...inp, minHeight:70 }} value={settings.metaDesc} onChange={e=>setSettings({...settings,metaDesc:e.target.value})} />
-                </FormRow>
-                <FormRow label="Canonical URL">
-                  <input style={inp} value={settings.siteUrl} onChange={e=>setSettings({...settings,siteUrl:e.target.value})} />
                 </FormRow>
               </div>
               <div style={card}>
@@ -1821,21 +1722,6 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
                 <FormRow label="Google Analytics ID">
                   <input style={inp} placeholder="G-XXXXXXXXXX" value={settings.ga} onChange={e=>setSettings({...settings,ga:e.target.value})} />
                 </FormRow>
-                <FormRow label="Google Search Console Doğrulama">
-                  <input style={inp} placeholder="content=xxxx..." />
-                </FormRow>
-                <FormRow label="Facebook Pixel ID">
-                  <input style={inp} placeholder="Opsiyonel" />
-                </FormRow>
-              </div>
-              <div style={card}>
-                <h3 style={{ margin:"0 0 14px", fontSize:15, color:C.primary, fontWeight:700 }}>🗺️ Sitemap & Robots</h3>
-                <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:14 }}>
-                  {["🗺️ Sitemap Oluştur","🤖 Robots.txt Düzenle","📥 Schema Markup"].map(t=><button key={t} style={btn("ghost","sm")}>{t}</button>)}
-                </div>
-                <div style={{ background:"#f0fdf4", border:`1px solid #bbf7d0`, borderRadius:8, padding:"10px 14px", fontSize:13, color:"#15803d" }}>
-                  ✓ Sitemap son güncelleme: 22 Mart 2026 · 4.282.012 URL
-                </div>
               </div>
               <button style={{ ...btn("success","lg"), width:200 }}>💾 SEO Ayarlarını Kaydet</button>
             </div>
@@ -1845,43 +1731,12 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
         {tab==="site-settings" && (
           <div style={{ maxWidth:680 }}>
             <h2 style={{ margin:"0 0 6px", fontSize:20, color:C.primary, fontWeight:700 }}>Site Ayarları</h2>
-            <p style={{ color:C.muted, fontSize:14, marginBottom:22 }}>Platform genelindeki ayarları buradan yönetin</p>
             <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
               <div style={card}>
                 <h3 style={{ margin:"0 0 18px", fontSize:15, color:C.primary, fontWeight:700 }}>🎨 Marka & Logo</h3>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
                   <FormRow label="Site Adı"><input style={inp} value={settings.siteName} onChange={e=>setSettings({...settings,siteName:e.target.value})} /></FormRow>
                   <FormRow label="Site URL"><input style={inp} value={settings.siteUrl} onChange={e=>setSettings({...settings,siteUrl:e.target.value})} /></FormRow>
-                </div>
-                <FormRow label="Logo Yükle">
-                  <div style={{ border:`2px dashed ${C.border}`, borderRadius:8, padding:18, display:"flex", alignItems:"center", gap:14 }}>
-                    <div style={{ width:52, height:52, borderRadius:10, background:settings.primaryColor, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:22, fontWeight:800 }}>Ş</div>
-                    <div>
-                      <button style={btn("ghost","sm")}>📁 Logo Yükle</button>
-                      <div style={{ fontSize:12, color:C.muted, marginTop:5 }}>PNG, SVG — maks. 2MB · 200x60px önerilen</div>
-                    </div>
-                  </div>
-                </FormRow>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-                  <FormRow label="Ana Renk">
-                    <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                      <input type="color" value={settings.primaryColor} onChange={e=>setSettings({...settings,primaryColor:e.target.value})} style={{ width:38, height:34, borderRadius:6, border:`1px solid ${C.border}`, cursor:"pointer" }} />
-                      <input style={{ ...inp, flex:1 }} value={settings.primaryColor} onChange={e=>setSettings({...settings,primaryColor:e.target.value})} />
-                    </div>
-                  </FormRow>
-                  <FormRow label="Vurgu Rengi">
-                    <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                      <input type="color" value={settings.accentColor} onChange={e=>setSettings({...settings,accentColor:e.target.value})} style={{ width:38, height:34, borderRadius:6, border:`1px solid ${C.border}`, cursor:"pointer" }} />
-                      <input style={{ ...inp, flex:1 }} value={settings.accentColor} onChange={e=>setSettings({...settings,accentColor:e.target.value})} />
-                    </div>
-                  </FormRow>
-                </div>
-              </div>
-              <div style={card}>
-                <h3 style={{ margin:"0 0 18px", fontSize:15, color:C.primary, fontWeight:700 }}>📧 İletişim</h3>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-                  <FormRow label="İletişim E-postası"><input style={inp} value={settings.contactEmail} onChange={e=>setSettings({...settings,contactEmail:e.target.value})} /></FormRow>
-                  <FormRow label="Telefon"><input style={inp} value={settings.phone} onChange={e=>setSettings({...settings,phone:e.target.value})} /></FormRow>
                 </div>
               </div>
               <div style={card}>
@@ -1893,10 +1748,7 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
                   </div>
                 ))}
               </div>
-              <div style={{ display:"flex", gap:10 }}>
-                <button style={btn("success","lg")}>💾 Kaydet</button>
-                <button style={btn("ghost")}>Önizle</button>
-              </div>
+              <button style={btn("success","lg")}>💾 Kaydet</button>
             </div>
           </div>
         )}
@@ -1922,12 +1774,6 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
                 </div>
               ))}
             </div>
-            <div style={{ ...card, marginTop:16 }}>
-              <h3 style={{ margin:"0 0 14px", fontSize:15, color:C.primary, fontWeight:700 }}>Dışa Aktar</h3>
-              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-                {["📊 Excel (XLSX)","📄 PDF Raporu","📋 CSV Verisi"].map(t=><button key={t} style={btn("ghost")}>{t}</button>)}
-              </div>
-            </div>
           </div>
         )}
 
@@ -1935,134 +1781,6 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
     </div>
   );
 };
-
-// ─── BACKEND & DEPLOYMENT GUIDE ──────────────────────────────
-const BackendGuidePage = () => (
-  <div style={{ maxWidth:900, margin:"0 auto", padding:"36px 24px" }}>
-    <h1 style={{ fontSize:26, color:C.primary, fontWeight:800, marginBottom:6 }}>🚀 Production Backend & Deployment Rehberi</h1>
-    <p style={{ color:C.muted, fontSize:14.5, marginBottom:28 }}>FastAPI + PostgreSQL + Cloudflare Workers — 10M+ kullanıcıya hazır mimari</p>
-
-    {/* Architecture */}
-    <div style={{ ...card, marginBottom:18, borderTop:`4px solid ${C.blue}` }}>
-      <h2 style={{ margin:"0 0 16px", fontSize:17, color:C.primary, fontWeight:700 }}>📐 Sistem Mimarisi</h2>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:12 }}>
-        {[["Frontend","React + Vite","Cloudflare Pages","⚡ CDN + Edge"],["Backend API","FastAPI (Python)","Railway / Fly.io","🚂 Auto-scale"],["Veritabanı","PostgreSQL 16","Supabase / Neon","🐘 Managed DB"],["Cache","Redis","Upstash Redis","⚡ Edge KV"],["Dosya","S3 Compat.","Cloudflare R2","☁️ $0 egress"],["E-posta","Transactional","Resend / SES","✉️ Bildirimler"]].map(([t,tech,srv,badge])=>(
-          <div key={t} style={{ background:"#f8fafc", borderRadius:8, padding:14, border:`1px solid ${C.border}` }}>
-            <div style={{ fontSize:12, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:.5, marginBottom:6 }}>{t}</div>
-            <div style={{ fontWeight:700, fontSize:14, color:C.text, marginBottom:3 }}>{tech}</div>
-            <div style={{ fontSize:12.5, color:C.blue }}>{srv}</div>
-            <div style={{ fontSize:11.5, color:C.muted, marginTop:3 }}>{badge}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {/* FastAPI structure */}
-    <div style={{ ...card, marginBottom:18, borderTop:`4px solid ${C.purple}` }}>
-      <h2 style={{ margin:"0 0 14px", fontSize:17, color:C.primary, fontWeight:700 }}>🐍 FastAPI Proje Yapısı</h2>
-      <pre style={{ background:"#0f172a", color:"#e2e8f0", borderRadius:10, padding:18, fontSize:12.5, overflowX:"auto", lineHeight:1.6 }}>{`backend/
-├── app/
-│   ├── main.py              # FastAPI app entry
-│   ├── core/
-│   │   ├── config.py        # Settings (Pydantic BaseSettings)
-│   │   ├── security.py      # JWT + bcrypt
-│   │   └── database.py      # SQLAlchemy async engine
-│   ├── models/
-│   │   ├── user.py          # User SQLAlchemy model
-│   │   ├── complaint.py     # Complaint model
-│   │   ├── comment.py       # Comment model
-│   │   └── category.py      # Category model
-│   ├── schemas/
-│   │   ├── user.py          # Pydantic schemas
-│   │   └── complaint.py     # Request/Response schemas
-│   ├── api/v1/
-│   │   ├── auth.py          # /login, /register, /refresh
-│   │   ├── complaints.py    # CRUD + search + filter
-│   │   ├── comments.py      # Comment endpoints
-│   │   ├── categories.py    # Category management
-│   │   ├── users.py         # Profile + admin user mgmt
-│   │   ├── admin.py         # Admin-only endpoints
-│   │   └── uploads.py       # File upload to R2
-│   └── services/
-│       ├── email.py         # Resend integration
-│       ├── search.py        # Full-text search (pg_trgm)
-│       └── cache.py         # Redis caching layer
-├── alembic/                 # DB migrations
-├── tests/                   # pytest test suite
-├── Dockerfile
-├── docker-compose.yml
-└── requirements.txt`}</pre>
-    </div>
-
-    {/* Key API endpoints */}
-    <div style={{ ...card, marginBottom:18, borderTop:`4px solid ${C.green}` }}>
-      <h2 style={{ margin:"0 0 14px", fontSize:17, color:C.primary, fontWeight:700 }}>🔌 Temel API Endpoint'leri</h2>
-      <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
-        <thead><tr>{["Method","Endpoint","Açıklama","Auth"].map(h=><th key={h} style={{ padding:"9px 12px", textAlign:"left", background:"#f8fafc", fontWeight:600, color:C.muted, fontSize:11.5, borderBottom:`2px solid ${C.border}` }}>{h}</th>)}</tr></thead>
-        <tbody>
-          {[
-            ["POST","/api/v1/auth/register","Kullanıcı kaydı","Hayır"],
-            ["POST","/api/v1/auth/login","JWT token al","Hayır"],
-            ["GET","/api/v1/complaints","Şikayet listesi (paginated)","Hayır"],
-            ["POST","/api/v1/complaints","Şikayet oluştur","✓ User"],
-            ["GET","/api/v1/complaints/{id}","Şikayet detayı","Hayır"],
-            ["PATCH","/api/v1/complaints/{id}/status","Durum güncelle","✓ Admin"],
-            ["DELETE","/api/v1/complaints/{id}","Şikayet sil","✓ Admin"],
-            ["POST","/api/v1/complaints/{id}/comments","Yorum ekle","✓ User"],
-            ["POST","/api/v1/complaints/{id}/vote","Oy ver","✓ User"],
-            ["GET","/api/v1/admin/stats","Dashboard istatistikleri","✓ Admin"],
-            ["POST","/api/v1/uploads","Dosya yükle (R2)","✓ User"],
-            ["GET","/api/v1/categories","Kategori listesi","Hayır"],
-            ["POST","/api/v1/categories","Kategori ekle","✓ User/Admin"],
-          ].map(([m,ep,d,a],i)=>(
-            <tr key={i}>
-              <td style={{ padding:"9px 12px", borderBottom:`1px solid ${C.border}` }}>
-                <span style={{ background: m==="GET"?"#dcfce7":m==="POST"?"#dbeafe":m==="PATCH"?"#fef9c3":"#fee2e2", color: m==="GET"?C.green:m==="POST"?C.blue:m==="PATCH"?"#b45309":C.red, padding:"2px 7px", borderRadius:5, fontSize:11.5, fontWeight:700, fontFamily:"monospace" }}>{m}</span>
-              </td>
-              <td style={{ padding:"9px 12px", borderBottom:`1px solid ${C.border}`, fontFamily:"monospace", fontSize:12.5, color:C.primary }}>{ep}</td>
-              <td style={{ padding:"9px 12px", borderBottom:`1px solid ${C.border}`, color:C.muted }}>{d}</td>
-              <td style={{ padding:"9px 12px", borderBottom:`1px solid ${C.border}`, color: a==="Hayır" ? C.muted : C.green, fontWeight: a!=="Hayır"?600:400 }}>{a}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-
-    {/* Cloudflare */}
-    <div style={{ ...card, marginBottom:18, borderTop:`4px solid ${C.amber}` }}>
-      <h2 style={{ margin:"0 0 14px", fontSize:17, color:C.primary, fontWeight:700 }}>☁️ Cloudflare Deployment (sikayetetkktc.com)</h2>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-        {[["Cloudflare Pages (Frontend)","• npm run build → dist/\n• Pages projesine bağla\n• Build: npm run build\n• Output: dist\n• Auto-deploy: GitHub push\n• Custom domain: sikayetetkktc.com"],
-          ["Cloudflare Workers (API Gateway)","• API isteklerini backend'e yönlendir\n• Rate limiting (100 req/min/IP)\n• DDoS koruması otomatik\n• Edge locations: 300+ ülke\n• Latency: <50ms global"],
-          ["DNS Ayarları (Veridyen→Cloudflare)","• NS kayıtlarını Cloudflare'e al\n• A record: @ → Backend IP\n• CNAME: www → @\n• Proxy: ✓ (turuncu bulut)\n• SSL: Full (strict) — otomatik"],
-          ["Cloudflare R2 (Dosyalar)","• Bucket: sikayetkktc-uploads\n• CORS: sikayetetkktc.com\n• Max dosya: 10MB\n• Ücretsiz: 10GB/ay\n• Public URL: files.sikayetetkktc.com"],
-        ].map(([t,c])=>(
-          <div key={t} style={{ background:"#fffbeb", border:`1px solid #fde68a`, borderRadius:8, padding:14 }}>
-            <div style={{ fontWeight:700, fontSize:13.5, color:"#92400e", marginBottom:8 }}>{t}</div>
-            <pre style={{ margin:0, fontSize:12, color:"#78350f", lineHeight:1.7, fontFamily:"monospace", whiteSpace:"pre-wrap" }}>{c}</pre>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {/* Performance */}
-    <div style={{ ...card, borderTop:`4px solid ${C.accent}` }}>
-      <h2 style={{ margin:"0 0 14px", fontSize:17, color:C.primary, fontWeight:700 }}>⚡ 10M Kullanıcı için Performans Stratejisi</h2>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))", gap:12 }}>
-        {[["🗄️ DB Optimizasyonu","• PostgreSQL connection pooling (PgBouncer)\n• Index: user_id, status, created_at\n• Full-text search: pg_trgm\n• Read replicas: okuma yükü dağıtımı\n• Partitioning: complaints tablosu aylık"],
-          ["⚡ Cache Stratejisi","• Redis: popüler şikayetler (5 dakika TTL)\n• CDN: statik dosyalar (1 yıl)\n• API: /complaints listesi (30 saniye)\n• User session: JWT + Redis blacklist\n• Rate limit: Cloudflare Workers KV"],
-          ["🔄 Async & Queue","• FastAPI async/await tüm DB sorguları\n• Celery + Redis: e-posta kuyruğu\n• Background tasks: istatistik güncelleme\n• Webhook: kurum bildirim sistemi\n• Batch: toplu e-posta (SendGrid)"],
-          ["📊 Monitoring","• Sentry: hata takibi\n• Prometheus + Grafana: metrikler\n• Cloudflare Analytics: trafik\n• PagerDuty: alert sistemi\n• Logs: Loki + Grafana Stack"],
-        ].map(([t,c])=>(
-          <div key={t} style={{ background:"#f8fafc", borderRadius:8, padding:14, border:`1px solid ${C.border}` }}>
-            <div style={{ fontWeight:700, fontSize:13.5, color:C.primary, marginBottom:8 }}>{t}</div>
-            <pre style={{ margin:0, fontSize:12, color:C.muted, lineHeight:1.7, fontFamily:"monospace", whiteSpace:"pre-wrap" }}>{c}</pre>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
 
 // ─── MAIN APP ────────────────────────────────────────────────
 export default function App() {
@@ -2083,16 +1801,12 @@ export default function App() {
     twitter: "sikayetetkktc",
   });
 
-  // Supabase'den istatistikleri çek
   useEffect(() => {
     sb.get("site_settings", "?key=eq.stats&select=value").then(data => {
       if (data && data[0]) setSiteStats(data[0].value);
     }).catch(() => {});
     sb.get("site_settings", "?key=eq.footer&select=value").then(data => {
-      if (data && data[0]) {
-        const fd = data[0].value;
-        setFooterData(prev => ({ ...prev, ...fd }));
-      }
+      if (data && data[0]) setFooterData(prev => ({ ...prev, ...data[0].value }));
     }).catch(() => {});
   }, []);
 
@@ -2114,16 +1828,6 @@ export default function App() {
       {page==="notifications" && user && <UserPanel user={user} setUser={setUser} setPage={setPage} initTab="notifications" />}
       {page==="saved" && user && <UserPanel user={user} setUser={setUser} setPage={setPage} initTab="saved" />}
       {page==="admin" && user?.role==="admin" && <AdminPanel user={user} setPage={setPage} footerData={footerData} setFooterData={setFooterData} />}
-      {page==="backend-guide" && <BackendGuidePage />}
-
-      {/* Quick access to backend guide */}
-      {user?.role==="admin" && page!=="backend-guide" && (
-        <div style={{ position:"fixed", bottom:24, right:24, zIndex:50 }}>
-          <button style={{ ...btn("primary"), boxShadow:"0 4px 16px rgba(0,0,0,.18)", padding:"11px 16px" }} onClick={()=>setPage("backend-guide")}>
-            🚀 Deployment Rehberi
-          </button>
-        </div>
-      )}
 
       <Footer footerData={footerData} />
     </div>
