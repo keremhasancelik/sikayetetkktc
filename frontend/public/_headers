@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  destination = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  VITE_API_URL = "https://api.sikayetkktc.com"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
