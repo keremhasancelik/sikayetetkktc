@@ -559,7 +559,14 @@ const ComplaintsPage = ({ setPage, setSelected }) => {
       }).catch(()=>setLoading(false));
   }, []);
 
-  const filtered = dbComplaints.filter(c => filter==="all" || c.status===filter);
+  const filtered = dbComplaints
+    .filter(c => filter==="all" || c.status===filter)
+    .sort((a, b) => {
+      if (sort==="newest") return b.id - a.id;
+      if (sort==="popular") return b.views - a.views;
+      if (sort==="votes") return b.votes - a.votes;
+      return b.id - a.id;
+    });
   return (
     <div style={{ maxWidth:1200, margin:"0 auto", padding:"34px 24px" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:10 }}>
@@ -749,7 +756,26 @@ const AIComplaintPage = ({ user, setPage }) => {
     },
     4: (input) => {
       if (input.toLowerCase().includes("onayla")) {
-        return { text:"✅ Şikayetiniz başarıyla yayınlandı! Yanıt geldiğinde e-posta ile bilgilendirileceksiniz.", next:5 };
+        // Supabase'e kaydet
+        const title = draft.title || draft.body.substring(0,60) + "...";
+        sb.post("complaints", {
+          title: title,
+          body: draft.body,
+          category: draft.category || "Diğer",
+          company: draft.company,
+          author_name: user?.name || "Anonim",
+          author_avatar: user?.avatar || "?",
+          status: "Açık",
+          views: 0,
+          votes: 0,
+          comments_count: 0,
+          is_published: true
+        }).then(res => {
+          if (res && res[0]) {
+            setStep(5);
+          }
+        }).catch(() => {});
+        return { text:"✅ Şikayetiniz Supabase veritabanına kaydedildi ve yayınlandı!\n\n📋 Kurum: " + draft.company + "\n📁 Kategori: " + (draft.category||"Diğer") + "\n\nYanıt geldiğinde bilgilendirileceksiniz.", next:5 };
       }
       return { text:"Hangi kısmı değiştirmek istiyorsunuz? (kurum / kategori / detay)", next:3 };
     }
@@ -1234,6 +1260,120 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
 };
 
 // ─── ADMIN PANEL ─────────────────────────────────────────────
+// ─── ADMIN COMPLAINTS TAB ───────────────────────────────────
+const AdminComplaintsTab = ({ complaints, setComplaints, deleteComplaint, updateStatus, loadingComplaints }) => {
+  // Local style helpers (AdminPanel scope'undan bağımsız)
+  const th = { padding:"11px 14px", textAlign:"left", background:"#f8fafc", fontWeight:600, color:C.muted, fontSize:11.5, textTransform:"uppercase", letterSpacing:.5, borderBottom:`2px solid ${C.border}` };
+  const td_ = { padding:"13px 14px", borderBottom:`1px solid ${C.border}`, verticalAlign:"middle", fontSize:13.5 };
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [sortDir, setSortDir] = useState("desc"); // desc = yeniden eskiye, asc = eskiden yeniye
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState({});
+
+  const filtered = complaints
+    .filter(c => filterStatus === "all" || c.status === filterStatus)
+    .filter(c => !search || c.title.toLowerCase().includes(search.toLowerCase()) || c.company.toLowerCase().includes(search.toLowerCase()) || c.author.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => sortDir === "desc" ? b.id - a.id : a.id - b.id);
+
+  const startEdit = (c) => { setEditingId(c.id); setEditData({ title: c.title, company: c.company, body: c.body }); };
+  const saveEdit = async (id) => {
+    const ok = await sb.patch("complaints", id, editData);
+    if (ok) {
+      setComplaints(prev => prev.map(x => x.id === id ? {...x, ...editData} : x));
+      setEditingId(null);
+      alert("Şikayet güncellendi ✓");
+    } else { alert("Güncelleme başarısız"); }
+  };
+
+  return (
+    <div>
+      <div style={{ display:"flex", justifyContent:"space-between", marginBottom:18, flexWrap:"wrap", gap:10 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <h2 style={{ margin:0, fontSize:20, color:C.primary, fontWeight:700 }}>Şikayet Yönetimi</h2>
+          {loadingComplaints && <span style={{ fontSize:12, color:C.muted }}>Yükleniyor...</span>}
+          <span style={{ fontSize:13, color:C.muted, background:"#f1f5f9", padding:"3px 10px", borderRadius:20 }}>{filtered.length} şikayet</span>
+        </div>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+          <input style={{ ...inp, width:200 }} placeholder="Şikayet / kurum / yazar ara..." value={search} onChange={e=>setSearch(e.target.value)} />
+          <select style={{ ...inp, width:"auto" }} value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
+            <option value="all">Tüm Durumlar</option>
+            <option value="Açık">Açık</option>
+            <option value="İnceleniyor">İnceleniyor</option>
+            <option value="Çözüldü">Çözüldü</option>
+            <option value="Yayınlanamadı">Yayınlanamadı</option>
+          </select>
+          <button style={btn(sortDir==="desc"?"primary":"ghost","sm")} onClick={()=>setSortDir(sortDir==="desc"?"asc":"desc")}>
+            {sortDir==="desc"?"↓ Yeniden Eskiye":"↑ Eskiden Yeniye"}
+          </button>
+        </div>
+      </div>
+      <div style={card}>
+        <table style={{ width:"100%", borderCollapse:"collapse" }}>
+          <thead><tr>{["#","Başlık / Kurum","Yazar","Durum","Tarih","İşlem"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr><td colSpan={6} style={{ ...td_, textAlign:"center", color:C.muted, padding:32 }}>Şikayet bulunamadı</td></tr>
+            )}
+            {filtered.map(c=>(
+              <React.Fragment key={c.id}>
+                <tr style={{ background: editingId===c.id ? "#f0f9ff" : "transparent" }}>
+                  <td style={td_}><span style={{ color:C.muted, fontSize:12 }}>#{c.id}</span></td>
+                  <td style={{ ...td_, maxWidth:240 }}>
+                    {editingId===c.id ? (
+                      <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                        <input style={{ ...inp, fontSize:12, padding:"4px 8px" }} value={editData.title} onChange={e=>setEditData({...editData,title:e.target.value})} />
+                        <input style={{ ...inp, fontSize:12, padding:"4px 8px" }} value={editData.company} onChange={e=>setEditData({...editData,company:e.target.value})} placeholder="Kurum" />
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontSize:13 }}>{c.title}</div>
+                        <div style={{ fontSize:11.5, color:C.muted }}>🏢 {c.company} · {c.category}</div>
+                      </>
+                    )}
+                  </td>
+                  <td style={td_}>{c.author}</td>
+                  <td style={td_}>
+                    <select style={{ ...inp, padding:"4px 8px", fontSize:12, width:"auto" }} value={c.status}
+                      onChange={e=>updateStatus(c.id, e.target.value)}>
+                      <option>Açık</option><option>İnceleniyor</option><option>Çözüldü</option><option>Yayınlanamadı</option>
+                    </select>
+                  </td>
+                  <td style={{ ...td_, fontSize:12, color:C.muted }}>{c.date}</td>
+                  <td style={td_}>
+                    <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                      {editingId===c.id ? (
+                        <>
+                          <button style={btn("success","sm")} onClick={()=>saveEdit(c.id)}>💾 Kaydet</button>
+                          <button style={btn("ghost","sm")} onClick={()=>setEditingId(null)}>İptal</button>
+                        </>
+                      ) : (
+                        <>
+                          <button title="İncele" style={btn("ghost","sm")} onClick={()=>{ setEditingId(null); alert("Şikayet:\n\n" + c.title + "\n\nYazar: " + c.author + "\nKurum: " + c.company + "\nDurum: " + c.status + "\n\n" + c.body); }}>🔍 İncele</button>
+                          <button title="Düzenle" style={btn("secondary","sm")} onClick={()=>startEdit(c)}>✏️ Düzenle</button>
+                          <button title="Sil" style={btn("danger","sm")} onClick={()=>deleteComplaint(c.id)}>🗑</button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+                {editingId===c.id && (
+                  <tr style={{ background:"#f0f9ff" }}>
+                    <td colSpan={6} style={{ ...td_, paddingTop:0 }}>
+                      <div style={{ fontSize:12, color:C.muted, marginBottom:4 }}>Şikayet İçeriği:</div>
+                      <textarea style={{ ...inp, minHeight:80, fontSize:12 }} value={editData.body} onChange={e=>setEditData({...editData,body:e.target.value})} />
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: setParentFooterData, siteStats, setSiteStats }) => {
   const [tab, setTab] = useState("dashboard");
   const [users, setUsers] = useState([
@@ -1373,41 +1513,13 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
         )}
 
         {tab==="complaints" && (
-          <div>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:18, flexWrap:"wrap", gap:10 }}>
-              <h2 style={{ margin:0, fontSize:20, color:C.primary, fontWeight:700 }}>Şikayet Yönetimi</h2>
-              <div style={{ display:"flex", gap:8 }}>
-                <input style={{ ...inp, width:200 }} placeholder="Şikayet ara..." />
-                <select style={{ ...inp, width:"auto" }}><option>Tüm Durumlar</option><option>Açık</option><option>İnceleniyor</option><option>Çözüldü</option></select>
-              </div>
-            </div>
-            <div style={card}>
-              <table style={{ width:"100%", borderCollapse:"collapse" }}>
-                <thead><tr>{["#","Başlık","Yazar","Kurum","Durum","Tarih","İşlem"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
-                <tbody>
-                  {complaints.map(c=>(
-                    <tr key={c.id}>
-                      <td style={td_}><span style={{ color:C.muted, fontSize:12 }}>#{c.id}</span></td>
-                      <td style={{ ...td_, maxWidth:200 }}><div style={{ fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.title}</div><div style={{ fontSize:11.5, color:C.muted }}>{c.category}</div></td>
-                      <td style={td_}>{c.author}</td>
-                      <td style={td_}>{c.company}</td>
-                      <td style={td_}>
-                        <select style={{ ...inp, padding:"4px 8px", fontSize:12, width:"auto" }} value={c.status}
-                          onChange={e=>updateStatus(c.id, e.target.value)}>
-                          <option>Açık</option><option>İnceleniyor</option><option>Çözüldü</option>
-                        </select>
-                      </td>
-                      <td style={{ ...td_, fontSize:12, color:C.muted }}>{c.date}</td>
-                      <td style={td_}><div style={{ display:"flex", gap:5 }}>
-                        <button style={btn("ghost","sm")}>👁</button>
-                        <button style={btn("danger","sm")} onClick={()=>deleteComplaint(c.id)}>🗑</button>
-                      </div></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <AdminComplaintsTab
+            complaints={complaints}
+            setComplaints={setComplaints}
+            deleteComplaint={deleteComplaint}
+            updateStatus={updateStatus}
+            loadingComplaints={loadingComplaints}
+          />
         )}
 
         {tab==="users" && (
