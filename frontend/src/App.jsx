@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 // ─── SUPABASE CONFIG ────────────────────────────────────────
 const SUPABASE_URL = "https://xxngmpeoywkcjkjeggse.supabase.co";
 const SUPABASE_KEY = "sb_publishable_UXSRhaVcf4-lM1Y2DadhJA_okbnpujv";
@@ -894,7 +894,29 @@ const AIComplaintPage = ({ user, setPage }) => {
                 📎 Fotoğraf veya PDF yükleyin (maks. 5 dosya · 10MB)
               </div>
             </FormRow>
-            <button style={{ ...btn("success","lg"), width:"100%" }} onClick={()=>setPage("complaints")}>✓ Şikayeti Yayınla</button>
+            <button style={{ ...btn("success","lg"), width:"100%" }} onClick={async ()=>{
+              if (!draft.title || !draft.company || !draft.body || !draft.category) {
+                alert("Lütfen tüm alanları doldurun.");
+                return;
+              }
+              const res = await sb.post("complaints", {
+                title: draft.title,
+                body: draft.body,
+                category: draft.category,
+                company: draft.company,
+                author_name: user?.name || "Anonim",
+                author_avatar: user?.avatar || "?",
+                status: "Açık",
+                views: 0, votes: 0, comments_count: 0,
+                is_published: true
+              });
+              if (res && res[0]) {
+                alert("✅ Şikayetiniz başarıyla kaydedildi!");
+                setPage("complaints");
+              } else {
+                alert("Kayıt sırasında hata oluştu. Lütfen tekrar deneyin.");
+              }
+            }}>✓ Şikayeti Yayınla</button>
           </div>
         </div>
       )}
