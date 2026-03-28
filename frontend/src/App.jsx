@@ -1,4 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+// ─── SUPABASE CONFIG ────────────────────────────────────────
+const SUPABASE_URL = "https://xxngmpeoywkcjkjeggse.supabase.co";
+const SUPABASE_KEY = "sb_publishable_UXSRhaVcf4-lM1Y2DadhJA_okbnpujv";
+
+const sb = {
+  headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", "Prefer": "return=representation" },
+  async get(table, params="") {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, { headers: this.headers });
+    return r.json();
+  },
+  async post(table, data) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method:"POST", headers: this.headers, body: JSON.stringify(data) });
+    return r.json();
+  },
+  async patch(table, id, data) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, { method:"PATCH", headers: this.headers, body: JSON.stringify(data) });
+    return r.ok;
+  },
+  async delete(table, id) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, { method:"DELETE", headers: this.headers });
+    return r.ok;
+  },
+};
+
+
 // ─── SVG LOGO & SOCIAL ICONS ────────────────────────────────
 const LogoIcon = ({ size = 36 }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -516,7 +541,25 @@ const CategoriesPage = ({ setPage }) => {
 const ComplaintsPage = ({ setPage, setSelected }) => {
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("newest");
-  const filtered = MOCK_COMPLAINTS.filter(c => filter==="all" || c.status===filter);
+  const [dbComplaints, setDbComplaints] = useState(MOCK_COMPLAINTS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    sb.get("complaints", "?is_published=eq.true&order=created_at.desc")
+      .then(data => {
+        if (data && data.length > 0) {
+          setDbComplaints(data.map(c => ({
+            id:c.id, title:c.title, body:c.body, category:c.category,
+            company:c.company, author:c.author_name, avatar:c.author_avatar,
+            date:new Date(c.created_at).toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"}),
+            views:c.views, votes:c.votes, comments:c.comments_count, status:c.status
+          })));
+        }
+        setLoading(false);
+      }).catch(()=>setLoading(false));
+  }, []);
+
+  const filtered = dbComplaints.filter(c => filter==="all" || c.status===filter);
   return (
     <div style={{ maxWidth:1200, margin:"0 auto", padding:"34px 24px" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:10 }}>
@@ -1200,6 +1243,47 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
     { id:4, name:"Fatma Demir", email:"fatma@e.com", phone:"0553 321 09 87", complaints:22, status:"Aktif", joined:"Ocak 2025" },
   ]);
   const [complaints, setComplaints] = useState(MOCK_COMPLAINTS);
+  const [loadingComplaints, setLoadingComplaints] = useState(false);
+
+  // Supabase'den şikayetleri çek
+  useEffect(() => {
+    setLoadingComplaints(true);
+    sb.get("complaints", "?order=created_at.desc")
+      .then(data => {
+        if (data && data.length > 0) {
+          const mapped = data.map(c => ({
+            id: c.id, title: c.title, body: c.body, category: c.category,
+            company: c.company, author: c.author_name, avatar: c.author_avatar,
+            date: new Date(c.created_at).toLocaleDateString("tr-TR", {day:"numeric",month:"long",year:"numeric"}),
+            views: c.views, votes: c.votes, comments: c.comments_count, status: c.status
+          }));
+          setComplaints(mapped);
+        }
+        setLoadingComplaints(false);
+      }).catch(() => setLoadingComplaints(false));
+  }, []);
+
+  // Şikayet sil - Supabase'den gerçekten sil
+  const deleteComplaint = async (id) => {
+    if (!window.confirm("Bu şikayeti kalıcı olarak silmek istediğinizden emin misiniz?")) return;
+    const ok = await sb.delete("complaints", id);
+    if (ok) {
+      setComplaints(prev => prev.filter(x => x.id !== id));
+      alert("Şikayet silindi.");
+    } else {
+      alert("Silme işlemi başarısız.");
+    }
+  };
+
+  // Şikayet durumu güncelle - Supabase'de gerçekten güncelle
+  const updateStatus = async (id, newStatus) => {
+    const ok = await sb.patch("complaints", id, { status: newStatus });
+    if (ok) {
+      setComplaints(prev => prev.map(x => x.id === id ? {...x, status: newStatus} : x));
+    } else {
+      alert("Güncelleme başarısız.");
+    }
+  };
   const [footerData, setFooterData] = useState(initFooterData || {
     desc: "KKTC'nin bağımsız şikayet platformu. Sesinizi duyurun, değişim yaratın.",
     columns: [
@@ -1309,14 +1393,14 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
                       <td style={td_}>{c.company}</td>
                       <td style={td_}>
                         <select style={{ ...inp, padding:"4px 8px", fontSize:12, width:"auto" }} value={c.status}
-                          onChange={e=>setComplaints(complaints.map(x=>x.id===c.id?{...x,status:e.target.value}:x))}>
+                          onChange={e=>updateStatus(c.id, e.target.value)}>
                           <option>Açık</option><option>İnceleniyor</option><option>Çözüldü</option>
                         </select>
                       </td>
                       <td style={{ ...td_, fontSize:12, color:C.muted }}>{c.date}</td>
                       <td style={td_}><div style={{ display:"flex", gap:5 }}>
                         <button style={btn("ghost","sm")}>👁</button>
-                        <button style={btn("danger","sm")} onClick={()=>setComplaints(complaints.filter(x=>x.id!==c.id))}>🗑</button>
+                        <button style={btn("danger","sm")} onClick={()=>deleteComplaint(c.id)}>🗑</button>
                       </div></td>
                     </tr>
                   ))}
@@ -1733,6 +1817,19 @@ export default function App() {
     facebook: "sikayetetkktc",
     twitter: "sikayetetkktc",
   });
+
+  // Supabase'den istatistikleri çek
+  useEffect(() => {
+    sb.get("site_settings", "?key=eq.stats&select=value").then(data => {
+      if (data && data[0]) setSiteStats(data[0].value);
+    }).catch(() => {});
+    sb.get("site_settings", "?key=eq.footer&select=value").then(data => {
+      if (data && data[0]) {
+        const fd = data[0].value;
+        setFooterData(prev => ({ ...prev, ...fd }));
+      }
+    }).catch(() => {});
+  }, []);
 
   return (
     <div style={{ minHeight:"100vh", background:C.bg, fontFamily:"'Georgia','Times New Roman',serif", color:C.text }}>
