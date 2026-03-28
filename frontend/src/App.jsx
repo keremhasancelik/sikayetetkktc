@@ -1,4 +1,36 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+// ─── SVG LOGO & SOCIAL ICONS ────────────────────────────────
+const LogoIcon = ({ size = 36 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M24 4L6 12V26C6 35.4 14.1 43.2 24 46C33.9 43.2 42 35.4 42 26V12L24 4Z" fill="#1a3c5e" />
+    <path d="M16 24L21 29L32 18" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="24" cy="37" r="2.5" fill="#e84c3d" />
+  </svg>
+);
+const IGIcon = ({ size = 20, color = "#fff" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+  </svg>
+);
+const FBIcon = ({ size = 20, color = "#fff" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+  </svg>
+);
+const TWIcon = ({ size = 20, color = "#fff" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+const WAIcon = ({ size = 22, color = "#fff" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+  </svg>
+);
+
+
 
 // ============================================================
 // KKTC ŞİKAYET PLATFORMU v2 — sikayetetkktc.com
@@ -112,10 +144,16 @@ const Modal = ({ open, onClose, title, children, maxW=520 }) => {
 };
 
 // ─── TOP BAR ────────────────────────────────────────────────
-const TopBar = () => (
-  <div style={{ background:C.navy, color:"rgba(255,255,255,.8)", padding:"5px 24px", display:"flex", justifyContent:"space-between", fontSize:12.5 }}>
-    <span>📢 Toplam çözülen şikayet: <strong style={{ color:"#4ade80" }}>1.847.330</strong></span>
-    <span>🌐 sikayetetkktc.com · KKTC'nin Bağımsız Sesi</span>
+const TopBar = ({ stats }) => (
+  <div style={{ background:C.navy, color:"rgba(255,255,255,.8)", padding:"5px 24px", display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:12.5 }}>
+    <span>📢 Toplam çözülen şikayet: <strong style={{ color:"#4ade80" }}>{(stats?.resolved||1847330).toLocaleString()}</strong></span>
+    <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+      <a href="https://instagram.com/sikayetetkktc" target="_blank" rel="noopener noreferrer" style={{ display:"flex", opacity:.75 }} title="Instagram"><IGIcon size={14} color="#fff" /></a>
+      <a href="https://facebook.com/sikayetetkktc" target="_blank" rel="noopener noreferrer" style={{ display:"flex", opacity:.75 }} title="Facebook"><FBIcon size={14} color="#fff" /></a>
+      <a href="https://twitter.com/sikayetetkktc" target="_blank" rel="noopener noreferrer" style={{ display:"flex", opacity:.75 }} title="Twitter"><TWIcon size={14} color="#fff" /></a>
+      <span style={{ opacity:.4 }}>|</span>
+      <span>🌐 sikayetetkktc.com</span>
+    </div>
   </div>
 );
 
@@ -126,7 +164,7 @@ const Navbar = ({ page, setPage, user, setUser }) => {
     <nav style={{ background:"#fff", borderBottom:`2px solid ${C.primary}`, padding:"0 24px", display:"flex", alignItems:"center", justifyContent:"space-between", height:62, position:"sticky", top:0, zIndex:99, boxShadow:"0 2px 8px rgba(0,0,0,.07)" }}>
       {/* Logo */}
       <div onClick={()=>setPage("home")} style={{ display:"flex", alignItems:"center", gap:9, cursor:"pointer" }}>
-        <div style={{ width:34, height:34, borderRadius:8, background:C.primary, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:17 }}>Ş</div>
+        <LogoIcon size={34} />
         <div>
           <div style={{ fontSize:15, fontWeight:800, color:C.primary, lineHeight:1 }}>ŞikayetETKKTC</div>
           <div style={{ fontSize:9.5, color:C.light, letterSpacing:.8 }}>sikayetetkktc.com</div>
@@ -176,35 +214,76 @@ const Navbar = ({ page, setPage, user, setUser }) => {
 };
 
 // ─── FOOTER ─────────────────────────────────────────────────
-const Footer = () => (
+const Footer = ({ footerData }) => {
+  const fd = footerData || {
+    desc: "KKTC'nin bağımsız şikayet platformu. Sesinizi duyurun, değişim yaratın.",
+    columns: [
+      { title:"Platform", links:[{label:"Şikayetler",url:"#"},{label:"Kategoriler",url:"#"},{label:"Trend100",url:"#"},{label:"Canlı İzle",url:"#"}] },
+      { title:"Kurumlar İçin", links:[{label:"Kurumsal Hesap",url:"#"},{label:"Şikayet Yanıtla",url:"#"},{label:"İtibar Yönetimi",url:"#"},{label:"Fiyatlandırma",url:"#"}] },
+      { title:"Yardım", links:[{label:"SSS",url:"#"},{label:"Kullanım Kuralları",url:"#"},{label:"Gizlilik",url:"#"},{label:"İletişim",url:"#"}] },
+    ],
+    copyright: "© 2026 ŞikayetETKKTC. Tüm hakları saklıdır.",
+    instagram: "sikayetetkktc",
+    facebook: "sikayetetkktc",
+    twitter: "sikayetetkktc",
+  };
+  return (
   <footer style={{ background:C.navy, color:"rgba(255,255,255,.65)", padding:"40px 24px 20px" }}>
     <div style={{ maxWidth:1200, margin:"0 auto" }}>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))", gap:28, marginBottom:28 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:28, marginBottom:28 }}>
         <div>
           <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:14 }}>
-            <div style={{ width:30, height:30, borderRadius:6, background:C.accent, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:15 }}>Ş</div>
-            <span style={{ color:"#fff", fontWeight:800, fontSize:15 }}>ŞikayetETKKTC</span>
+            <LogoIcon size={32} />
+            <div>
+              <div style={{ color:"#fff", fontWeight:800, fontSize:15, lineHeight:1 }}>ŞikayetETKKTC</div>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,.4)", letterSpacing:.6 }}>sikayetetkktc.com</div>
+            </div>
           </div>
-          <p style={{ fontSize:12.5, lineHeight:1.6, margin:"0 0 14px" }}>KKTC'nin bağımsız şikayet platformu. Sesinizi duyurun, değişim yaratın.</p>
+          <p style={{ fontSize:12.5, lineHeight:1.65, margin:"0 0 16px" }}>{fd.desc}</p>
+          <div style={{ display:"flex", gap:8 }}>
+            {fd.instagram && (
+              <a href={`https://instagram.com/${fd.instagram}`} target="_blank" rel="noopener noreferrer"
+                style={{ width:34, height:34, borderRadius:8, background:"linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <IGIcon size={17} color="#fff" />
+              </a>
+            )}
+            {fd.facebook && (
+              <a href={`https://facebook.com/${fd.facebook}`} target="_blank" rel="noopener noreferrer"
+                style={{ width:34, height:34, borderRadius:8, background:"#1877F2", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <FBIcon size={17} color="#fff" />
+              </a>
+            )}
+            {fd.twitter && (
+              <a href={`https://twitter.com/${fd.twitter}`} target="_blank" rel="noopener noreferrer"
+                style={{ width:34, height:34, borderRadius:8, background:"#000", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <TWIcon size={17} color="#fff" />
+              </a>
+            )}
+          </div>
         </div>
-        {[["Platform",["Şikayetler","Kategoriler","Trend100","Canlı İzle"]],
-          ["Kurumlar İçin",["Kurumsal Hesap","Şikayet Yanıtla","İtibar Yönetimi","Fiyatlandırma"]],
-          ["Yardım",["SSS","Kullanım Kuralları","Gizlilik","İletişim"]]].map(([t,ls])=>(
-          <div key={t}>
-            <div style={{ color:"#fff", fontWeight:700, fontSize:12.5, marginBottom:10, textTransform:"uppercase", letterSpacing:1 }}>{t}</div>
-            {ls.map(l=><div key={l} style={{ fontSize:12.5, marginBottom:7, cursor:"pointer" }}>{l}</div>)}
+        {fd.columns.map(col=>(
+          <div key={col.title}>
+            <div style={{ color:"#fff", fontWeight:700, fontSize:12.5, marginBottom:10, textTransform:"uppercase", letterSpacing:1 }}>{col.title}</div>
+            {col.links.map(link=>(
+              <a key={link.label} href={link.url||"#"}
+                style={{ display:"block", fontSize:12.5, marginBottom:7, color:"rgba(255,255,255,.65)", textDecoration:"none" }}
+                onMouseEnter={e=>e.currentTarget.style.color="#fff"}
+                onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,.65)"}>{link.label}</a>
+            ))}
           </div>
         ))}
       </div>
       <div style={{ borderTop:"1px solid rgba(255,255,255,.1)", paddingTop:16, display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:10, fontSize:12 }}>
-        <span>© 2026 ŞikayetETKKTC. Tüm hakları saklıdır.</span>
+        <span>{fd.copyright}</span>
         <div style={{ display:"flex", gap:14 }}>
           {["Kullanım Şartları","Gizlilik","Çerez Politikası"].map(l=><span key={l} style={{ cursor:"pointer" }}>{l}</span>)}
         </div>
       </div>
     </div>
   </footer>
-);
+  );
+};
+
 
 // ─── COMPLAINT CARD ─────────────────────────────────────────
 const ComplaintCard = ({ c, onClick }) => {
@@ -1112,7 +1191,7 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
 };
 
 // ─── ADMIN PANEL ─────────────────────────────────────────────
-const AdminPanel = ({ user, setPage }) => {
+const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: setParentFooterData, siteStats, setSiteStats }) => {
   const [tab, setTab] = useState("dashboard");
   const [users, setUsers] = useState([
     { id:1, name:"Mehmet Yılmaz", email:"mehmet@e.com", phone:"0533 123 45 67", complaints:8, status:"Aktif", joined:"Ocak 2025" },
@@ -1121,6 +1200,20 @@ const AdminPanel = ({ user, setPage }) => {
     { id:4, name:"Fatma Demir", email:"fatma@e.com", phone:"0553 321 09 87", complaints:22, status:"Aktif", joined:"Ocak 2025" },
   ]);
   const [complaints, setComplaints] = useState(MOCK_COMPLAINTS);
+  const [footerData, setFooterData] = useState(initFooterData || {
+    desc: "KKTC'nin bağımsız şikayet platformu. Sesinizi duyurun, değişim yaratın.",
+    columns: [
+      { title:"Platform", links:[{label:"Şikayetler",url:"#"},{label:"Kategoriler",url:"#"},{label:"Trend100",url:"#"},{label:"Canlı İzle",url:"#"}] },
+      { title:"Kurumlar İçin", links:[{label:"Kurumsal Hesap",url:"#"},{label:"Şikayet Yanıtla",url:"#"},{label:"İtibar Yönetimi",url:"#"},{label:"Fiyatlandırma",url:"#"}] },
+      { title:"Yardım", links:[{label:"SSS",url:"#"},{label:"Kullanım Kuralları",url:"#"},{label:"Gizlilik",url:"#"},{label:"İletişim",url:"#"}] },
+    ],
+    copyright: "© 2026 ŞikayetETKKTC. Tüm hakları saklıdır.",
+    instagram: "sikayetetkktc",
+    facebook: "sikayetetkktc",
+    twitter: "sikayetetkktc",
+  });
+  // Sync footer to parent
+  useEffect(()=>{ if(setParentFooterData) setParentFooterData(footerData); },[footerData]);
   const [settings, setSettings] = useState({ siteName:"ŞikayetETKKTC", siteUrl:"https://sikayetetkktc.com", metaTitle:"ŞikayetETKKTC - KKTC'nin Güvenilir Şikayet Platformu", metaDesc:"KKTC'de kamu ve özel kurumlar hakkında şikayetlerinizi bildirin.", ga:"G-XXXXXXXXXX", primaryColor:C.primary, accentColor:C.accent, contactEmail:"info@sikayetetkktc.com", phone:"+90 392 000 00 00" });
 
   const sideItems = [
@@ -1128,6 +1221,7 @@ const AdminPanel = ({ user, setPage }) => {
     { id:"complaints", icon:"📋", l:"Şikayetler" },
     { id:"users", icon:"👥", l:"Kullanıcılar" },
     { id:"categories", icon:"📁", l:"Kategoriler" },
+    { id:"footer-edit", icon:"🔗", l:"Footer Yönetimi" },
     { id:"seo", icon:"🔍", l:"SEO Yönetimi" },
     { id:"site-settings", icon:"⚙️", l:"Site Ayarları" },
     { id:"reports", icon:"📈", l:"Raporlar" },
@@ -1286,6 +1380,72 @@ const AdminPanel = ({ user, setPage }) => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {tab==="footer-edit" && (
+          <div style={{ maxWidth:720 }}>
+            <h2 style={{ margin:"0 0 6px", fontSize:20, color:C.primary, fontWeight:700 }}>Footer Yönetimi</h2>
+            <p style={{ color:C.muted, fontSize:14, marginBottom:22 }}>Footer içeriğini, linklerini ve sosyal medya hesaplarını düzenleyin.</p>
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              {/* Açıklama metni */}
+              <div style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:12, padding:22, boxShadow:"0 1px 4px rgba(0,0,0,.05)" }}>
+                <h3 style={{ margin:"0 0 16px", fontSize:15, color:C.primary, fontWeight:700 }}>📝 Açıklama Metni</h3>
+                <FormRow label="Kısa Açıklama">
+                  <textarea style={{ ...inp, minHeight:70 }} value={footerData.desc}
+                    onChange={e=>setFooterData({...footerData,desc:e.target.value})} />
+                </FormRow>
+                <FormRow label="Telif Hakkı Metni">
+                  <input style={inp} value={footerData.copyright}
+                    onChange={e=>setFooterData({...footerData,copyright:e.target.value})} />
+                </FormRow>
+              </div>
+              {/* Sosyal medya */}
+              <div style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:12, padding:22, boxShadow:"0 1px 4px rgba(0,0,0,.05)" }}>
+                <h3 style={{ margin:"0 0 16px", fontSize:15, color:C.primary, fontWeight:700 }}>📱 Sosyal Medya Hesapları</h3>
+                {[["instagram","Instagram","linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)",IGIcon],
+                  ["facebook","Facebook","#1877F2",FBIcon],
+                  ["twitter","X (Twitter)","#000",TWIcon]].map(([key,label,bg,Icon])=>(
+                  <FormRow key={key} label={label}>
+                    <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                      <div style={{ width:36, height:36, borderRadius:8, background:bg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                        <Icon size={18} color="#fff" />
+                      </div>
+                      <input style={{ ...inp, flex:1 }} placeholder="kullanici_adi"
+                        value={footerData[key]||""}
+                        onChange={e=>setFooterData({...footerData,[key]:e.target.value})} />
+                      <a href={`https://${key==="twitter"?"twitter":"instagram"==="instagram"?key==="facebook"?"facebook.com":"instagram.com":"twitter.com"}/${footerData[key]}`}
+                        target="_blank" rel="noopener noreferrer"
+                        style={{ ...btn("ghost","sm"), textDecoration:"none" }}>↗</a>
+                    </div>
+                  </FormRow>
+                ))}
+              </div>
+              {/* Footer kolonları */}
+              {footerData.columns.map((col,ci)=>(
+                <div key={ci} style={{ background:"#fff", border:"1px solid #e2e8f0", borderRadius:12, padding:22, boxShadow:"0 1px 4px rgba(0,0,0,.05)" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+                    <h3 style={{ margin:0, fontSize:15, color:C.primary, fontWeight:700 }}>
+                      🔗 Kolon: <input style={{ ...inp, display:"inline-block", width:"auto", padding:"3px 8px", fontSize:14, fontWeight:700 }}
+                        value={col.title} onChange={e=>{const cols=[...footerData.columns];cols[ci]={...cols[ci],title:e.target.value};setFooterData({...footerData,columns:cols});}} />
+                    </h3>
+                    <button style={btn("primary","sm")} onClick={()=>{const cols=[...footerData.columns];cols[ci]={...cols[ci],links:[...cols[ci].links,{label:"Yeni Link",url:"#"}]};setFooterData({...footerData,columns:cols});}}>+ Link Ekle</button>
+                  </div>
+                  {col.links.map((link,li)=>(
+                    <div key={li} style={{ display:"flex", gap:8, marginBottom:8, alignItems:"center" }}>
+                      <input style={{ ...inp, flex:2 }} placeholder="Link Adı" value={link.label}
+                        onChange={e=>{const cols=[...footerData.columns];cols[ci].links[li]={...link,label:e.target.value};setFooterData({...footerData,columns:cols});}} />
+                      <input style={{ ...inp, flex:3 }} placeholder="https://..." value={link.url}
+                        onChange={e=>{const cols=[...footerData.columns];cols[ci].links[li]={...link,url:e.target.value};setFooterData({...footerData,columns:cols});}} />
+                      <button style={btn("danger","sm")} onClick={()=>{const cols=[...footerData.columns];cols[ci].links=cols[ci].links.filter((_,i)=>i!==li);setFooterData({...footerData,columns:cols});}}>🗑</button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <div style={{ display:"flex", justifyContent:"flex-end" }}>
+                <button style={btn("success","lg")} onClick={()=>{ if(setParentFooterData) setParentFooterData(footerData); alert('Footer güncellendi! ✓'); }}>💾 Değişiklikleri Kaydet</button>
+              </div>
             </div>
           </div>
         )}
@@ -1560,11 +1720,24 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [user, setUser] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [siteStats] = useState({ total:4282012, resolved:1847330, members:342891 });
+  const [footerData, setFooterData] = useState({
+    desc: "KKTC'nin bağımsız şikayet platformu. Sesinizi duyurun, değişim yaratın.",
+    columns: [
+      { title:"Platform", links:[{label:"Şikayetler",url:"#"},{label:"Kategoriler",url:"#"},{label:"Trend100",url:"#"},{label:"Canlı İzle",url:"#"}] },
+      { title:"Kurumlar İçin", links:[{label:"Kurumsal Hesap",url:"#"},{label:"Şikayet Yanıtla",url:"#"},{label:"İtibar Yönetimi",url:"#"},{label:"Fiyatlandırma",url:"#"}] },
+      { title:"Yardım", links:[{label:"SSS",url:"#"},{label:"Kullanım Kuralları",url:"#"},{label:"Gizlilik",url:"#"},{label:"İletişim",url:"#"}] },
+    ],
+    copyright: "© 2026 ŞikayetETKKTC. Tüm hakları saklıdır.",
+    instagram: "sikayetetkktc",
+    facebook: "sikayetetkktc",
+    twitter: "sikayetetkktc",
+  });
 
   return (
     <div style={{ minHeight:"100vh", background:C.bg, fontFamily:"'Georgia','Times New Roman',serif", color:C.text }}>
       <style>{`* { box-sizing: border-box; } button:hover { opacity: .88; } input:focus, textarea:focus, select:focus { border-color: #2563a8 !important; box-shadow: 0 0 0 3px rgba(37,99,168,.12); }`}</style>
-      <TopBar />
+      <TopBar stats={siteStats} />
       <Navbar page={page} setPage={setPage} user={user} setUser={setUser} />
 
       {page==="home" && <HomePage setPage={setPage} setSelected={setSelected} user={user} />}
@@ -1578,7 +1751,7 @@ export default function App() {
       {page==="my-complaints" && user && <UserPanel user={user} setUser={setUser} setPage={setPage} initTab="my-complaints" />}
       {page==="notifications" && user && <UserPanel user={user} setUser={setUser} setPage={setPage} initTab="notifications" />}
       {page==="saved" && user && <UserPanel user={user} setUser={setUser} setPage={setPage} initTab="saved" />}
-      {page==="admin" && user?.role==="admin" && <AdminPanel user={user} setPage={setPage} />}
+      {page==="admin" && user?.role==="admin" && <AdminPanel user={user} setPage={setPage} footerData={footerData} setFooterData={setFooterData} siteStats={siteStats} setSiteStats={setSiteStats} />}
       {page==="backend-guide" && <BackendGuidePage />}
 
       {/* Quick access to backend guide */}
@@ -1590,36 +1763,7 @@ export default function App() {
         </div>
       )}
 
-      <Footer />
+      <Footer footerData={footerData} />
     </div>
   );
 }
-// ─── SVG LOGO ─────────────────────────────────────────────────
-const LogoIcon = ({ size = 36 }) => (
-  <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M24 4L6 12V26C6 35.4 14.1 43.2 24 46C33.9 43.2 42 35.4 42 26V12L24 4Z" fill="#1a3c5e" />
-    <path d="M16 24L21 29L32 18" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="24" cy="37" r="2.5" fill="#e84c3d" />
-  </svg>
-);
-
-// ─── SOCIAL MEDIA SVG ICONS ───────────────────────────────────
-const IGIcon = ({ size = 20, color = "#fff" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-  </svg>
-);
-const FBIcon = ({ size = 20, color = "#fff" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-  </svg>
-);
-const TWIcon = ({ size = 20, color = "#fff" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-  </svg>
-);
-
-
