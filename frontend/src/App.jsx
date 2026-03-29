@@ -1260,6 +1260,10 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
   const [adminPassForm, setAdminPassForm] = useState({newPass:"",confirm:""});
   const [adminSaveMsg, setAdminSaveMsg] = useState("");
   const [adminPassErr, setAdminPassErr] = useState("");
+  const [editingUser, setEditingUser] = useState(null);
+  const [editUserData, setEditUserData] = useState({});
+  const [userSaveMsg, setUserSaveMsg] = useState("");
+  const [resetPassMsg, setResetPassMsg] = useState("");
   const [customCategories, setCustomCategories] = useState([]);
   const [showAddCat, setShowAddCat] = useState(false);
   const [newCat, setNewCat] = useState({name:"",icon:"📌",color:C.blue});
@@ -1416,37 +1420,7 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
           </div>
         )}
 
-        {tab==="users"&&(()=>{
-          const [editingUser, setEditingUser] = React.useState(null);
-          const [editUserData, setEditUserData] = React.useState({});
-          const [userSaveMsg, setUserSaveMsg] = React.useState("");
-          const [resetPassEmail, setResetPassEmail] = React.useState("");
-          const [resetPassMsg, setResetPassMsg] = React.useState("");
-
-          const openEdit = (u) => { setEditingUser(u); setEditUserData({name:u.name||"",phone:u.phone||"",city:u.city||""}); setUserSaveMsg(""); setResetPassMsg(""); setResetPassEmail(u.email); };
-          
-          const saveUserEdit = async () => {
-            if(!editingUser)return;
-            await sb.patch("users",editingUser.id,editUserData);
-            setAllUsers(prev=>prev.map(x=>x.id===editingUser.id?{...x,...editUserData}:x));
-            setUserSaveMsg("✅ Kullanıcı güncellendi!");
-            setTimeout(()=>{setUserSaveMsg("");},3000);
-          };
-
-          const sendPasswordReset = async () => {
-            try {
-              await fetch(`${SUPABASE_URL}/auth/v1/recover`,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email:resetPassEmail})});
-              setResetPassMsg("✅ Şifre sıfırlama e-postası gönderildi!");
-            }catch{setResetPassMsg("⚠️ Gönderilemedi.");}
-          };
-
-          const deleteUser = async (id) => {
-            if(!window.confirm("Bu kullanıcıyı silmek istediğinizden emin misiniz?"))return;
-            if(await sb.delete("users",id)){setAllUsers(prev=>prev.filter(x=>x.id!==id));if(editingUser?.id===id)setEditingUser(null);}
-            else alert("Silme başarısız.");
-          };
-
-          return (
+        {tab==="users"&&(
           <div>
             <h2 style={{margin:"0 0 16px",fontSize:18,color:C.primary,fontWeight:700}}>Kullanıcı Yönetimi <span style={{fontSize:13,color:C.muted,fontWeight:400}}>({allUsers.length})</span></h2>
             <div style={{overflowX:"auto"}}>
@@ -1465,9 +1439,9 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
                       <td style={td_}>
                         {canEdit&&(
                           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                            <button style={btn("secondary","sm")} onClick={()=>openEdit(u)}>✏️</button>
+                            <button style={btn("secondary","sm")} onClick={()=>{ setEditingUser(u); setEditUserData({name:u.name||"",phone:u.phone||"",city:u.city||""}); setUserSaveMsg(""); setResetPassMsg(""); }}>✏️</button>
                             <button style={btn(u.status==="Engelli"?"success":"ghost","sm")} onClick={async()=>{ await sb.patch("users",u.id,{status:u.status==="Engelli"?"Aktif":"Engelli"}); setAllUsers(prev=>prev.map(x=>x.id===u.id?{...x,status:x.status==="Engelli"?"Aktif":"Engelli"}:x)); }}>{u.status==="Engelli"?"✓":"🚫"}</button>
-                            <button style={btn("danger","sm")} onClick={()=>deleteUser(u.id)}>🗑</button>
+                            <button style={btn("danger","sm")} onClick={async()=>{ if(!window.confirm("Bu kullanıcıyı silmek istediğinizden emin misiniz?"))return; if(await sb.delete("users",u.id)){setAllUsers(prev=>prev.filter(x=>x.id!==u.id));if(editingUser?.id===u.id)setEditingUser(null);}else alert("Silme başarısız."); }}>🗑</button>
                           </div>
                         )}
                       </td>
@@ -1480,7 +1454,7 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
               {editingUser&&(
                 <>
                   {userSaveMsg&&<div style={{background:"#dcfce7",color:"#16a34a",padding:"8px 12px",borderRadius:8,marginBottom:12,fontSize:13}}>{userSaveMsg}</div>}
-                  <div style={{background:"#f8fafc",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:13,color:C.muted}}>
+                  <div style={{background:"#f8fafc",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:13,color:C.muted}}>
                     📧 {editingUser.email} &nbsp;|&nbsp; 📅 {editingUser.created_at?new Date(editingUser.created_at).toLocaleDateString("tr-TR"):"-"}
                   </div>
                   <FormRow label="Ad Soyad"><input style={inp} value={editUserData.name} onChange={e=>setEditUserData({...editUserData,name:e.target.value})}/></FormRow>
@@ -1491,19 +1465,18 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
                       {["Lefkoşa","Gazimağusa","Girne","Güzelyurt","İskele"].map(c=><option key={c}>{c}</option>)}
                     </select>
                   </FormRow>
-                  <button style={{...btn("primary"),width:"100%",marginBottom:16}} onClick={saveUserEdit}>💾 Bilgileri Kaydet</button>
-                  <div style={{borderTop:`1px solid ${C.border}`,paddingTop:16}}>
+                  <button style={{...btn("primary"),width:"100%",marginBottom:16}} onClick={async()=>{ await sb.patch("users",editingUser.id,editUserData); setAllUsers(prev=>prev.map(x=>x.id===editingUser.id?{...x,...editUserData}:x)); setUserSaveMsg("✅ Kullanıcı güncellendi!"); setTimeout(()=>setUserSaveMsg(""),3000); }}>💾 Bilgileri Kaydet</button>
+                  <div style={{borderTop:`1px solid ${C.border}`,paddingTop:14}}>
                     <div style={{fontWeight:600,fontSize:13,marginBottom:8,color:C.primary}}>🔑 Şifre Sıfırlama</div>
                     {resetPassMsg&&<div style={{background:resetPassMsg.startsWith("✅")?"#dcfce7":"#fee2e2",color:resetPassMsg.startsWith("✅")?"#16a34a":"#dc2626",padding:"8px 12px",borderRadius:8,marginBottom:10,fontSize:13}}>{resetPassMsg}</div>}
-                    <p style={{fontSize:12.5,color:C.muted,marginBottom:10}}>Kullanıcıya şifre sıfırlama e-postası gönder:</p>
-                    <button style={{...btn("secondary"),width:"100%"}} onClick={sendPasswordReset}>📧 Şifre Sıfırlama E-postası Gönder</button>
+                    <p style={{fontSize:12.5,color:C.muted,marginBottom:10}}>Kullanıcıya şifre sıfırlama kodu gönder (Resend ile):</p>
+                    <button style={{...btn("secondary"),width:"100%"}} onClick={async()=>{ const code=Math.floor(100000+Math.random()*900000).toString(); await sendEmail("reset_password",editingUser.email,{code,name:editingUser.name||""}); await sb.post("password_resets",{email:editingUser.email,new_password:"",code,used:false,created_at:new Date().toISOString()}).catch(()=>{}); setResetPassMsg("✅ Şifre sıfırlama kodu gönderildi!"); }}>📧 Sıfırlama Kodu Gönder</button>
                   </div>
                 </>
               )}
             </Modal>
           </div>
-          );
-        })()}
+        )}
 
         {tab==="admin-users"&&(
           <div>
