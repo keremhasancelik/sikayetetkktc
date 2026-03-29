@@ -807,6 +807,10 @@ const LoginPage = ({ setPage, setUser }) => {
   const [form, setForm] = useState({email:"",pass:""});
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMsg, setForgotMsg] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const doLogin = async () => {
     if(!form.email||!form.pass){setErr("E-posta ve şifre gereklidir.");return;}
@@ -844,25 +848,63 @@ const LoginPage = ({ setPage, setUser }) => {
     setErr("E-posta veya şifre hatalı.");setLoading(false);
   };
 
+  const doForgotPassword = async () => {
+    if(!forgotEmail){setForgotMsg("⚠️ E-posta adresi giriniz.");return;}
+    setForgotLoading(true);
+    try {
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/recover`, {
+        method:"POST",
+        headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
+        body:JSON.stringify({email:forgotEmail})
+      });
+      setForgotMsg("✅ Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Gelen kutunuzu kontrol edin.");
+    }catch(e){
+      setForgotMsg("⚠️ Bir hata oluştu, lütfen tekrar deneyin.");
+    }
+    setForgotLoading(false);
+  };
+
   return (
     <div style={{maxWidth:420,margin:"40px auto",padding:"0 16px"}}>
       <div style={card}>
-        <div style={{textAlign:"center",marginBottom:24}}>
-          <LogoIcon size={48}/>
-          <h1 style={{fontSize:20,margin:"10px 0 5px",color:C.primary}}>Giriş Yap</h1>
-          <p style={{color:C.muted,margin:0,fontSize:13}}>ŞikayetETKKTC hesabınıza giriş yapın</p>
-        </div>
-        {err&&<div style={{background:"#fee2e2",color:"#dc2626",padding:"8px 12px",borderRadius:8,marginBottom:12,fontSize:13}}>⚠️ {err}</div>}
-        <FormRow label="E-posta"><input style={inp} type="email" placeholder="ornek@email.com" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} onKeyDown={e=>e.key==="Enter"&&doLogin()}/></FormRow>
-        <FormRow label="Şifre"><input style={inp} type="password" placeholder="••••••••" value={form.pass} onChange={e=>setForm({...form,pass:e.target.value})} onKeyDown={e=>e.key==="Enter"&&doLogin()}/></FormRow>
-        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}>
-          <span style={{fontSize:12.5,color:C.blue,cursor:"pointer"}}>Şifremi Unuttum</span>
-        </div>
-        <button style={{...btn("primary","lg"),width:"100%"}} onClick={doLogin} disabled={loading}>{loading?"Giriş yapılıyor...":"Giriş Yap"}</button>
-        <div style={{textAlign:"center",marginTop:12,fontSize:13}}>
-          <span style={{color:C.muted}}>Hesabınız yok mu? </span>
-          <span style={{color:C.blue,cursor:"pointer",fontWeight:600}} onClick={()=>setPage("register")}>Üye Ol</span>
-        </div>
+        {!showForgot ? (
+          <>
+            <div style={{textAlign:"center",marginBottom:24}}>
+              <LogoIcon size={48}/>
+              <h1 style={{fontSize:20,margin:"10px 0 5px",color:C.primary}}>Giriş Yap</h1>
+              <p style={{color:C.muted,margin:0,fontSize:13}}>ŞikayetETKKTC hesabınıza giriş yapın</p>
+            </div>
+            {err&&<div style={{background:"#fee2e2",color:"#dc2626",padding:"8px 12px",borderRadius:8,marginBottom:12,fontSize:13}}>⚠️ {err}</div>}
+            <FormRow label="E-posta"><input style={inp} type="email" placeholder="ornek@email.com" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} onKeyDown={e=>e.key==="Enter"&&doLogin()}/></FormRow>
+            <FormRow label="Şifre"><input style={inp} type="password" placeholder="••••••••" value={form.pass} onChange={e=>setForm({...form,pass:e.target.value})} onKeyDown={e=>e.key==="Enter"&&doLogin()}/></FormRow>
+            <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}>
+              <span style={{fontSize:12.5,color:C.blue,cursor:"pointer"}} onClick={()=>{setShowForgot(true);setForgotEmail(form.email);setForgotMsg("");}}>Şifremi Unuttum</span>
+            </div>
+            <button style={{...btn("primary","lg"),width:"100%"}} onClick={doLogin} disabled={loading}>{loading?"Giriş yapılıyor...":"Giriş Yap"}</button>
+            <div style={{textAlign:"center",marginTop:12,fontSize:13}}>
+              <span style={{color:C.muted}}>Hesabınız yok mu? </span>
+              <span style={{color:C.blue,cursor:"pointer",fontWeight:600}} onClick={()=>setPage("register")}>Üye Ol</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{textAlign:"center",marginBottom:20}}>
+              <div style={{fontSize:40,marginBottom:10}}>🔑</div>
+              <h2 style={{margin:"0 0 6px",color:C.primary,fontSize:18}}>Şifremi Unuttum</h2>
+              <p style={{color:C.muted,fontSize:13,margin:0}}>E-posta adresinize şifre sıfırlama bağlantısı göndereceğiz.</p>
+            </div>
+            {forgotMsg&&<div style={{background:forgotMsg.startsWith("✅")?"#dcfce7":"#fee2e2",color:forgotMsg.startsWith("✅")?"#16a34a":"#dc2626",padding:"10px 12px",borderRadius:8,marginBottom:14,fontSize:13}}>{forgotMsg}</div>}
+            {!forgotMsg.startsWith("✅")&&(
+              <>
+                <FormRow label="E-posta Adresiniz">
+                  <input style={inp} type="email" placeholder="ornek@email.com" value={forgotEmail} onChange={e=>setForgotEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doForgotPassword()}/>
+                </FormRow>
+                <button style={{...btn("primary","lg"),width:"100%",marginBottom:12}} onClick={doForgotPassword} disabled={forgotLoading}>{forgotLoading?"Gönderiliyor...":"📧 Sıfırlama Bağlantısı Gönder"}</button>
+              </>
+            )}
+            <button style={{...btn("ghost"),width:"100%"}} onClick={()=>setShowForgot(false)}>← Giriş Sayfasına Dön</button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1016,18 +1058,19 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
 
   const changePassword = async () => {
     setPassErr("");
-    if(!passForm.newPass||passForm.newPass.length<6){setPassErr("Yeni şifre en az 6 karakter olmalıdır.");return;}
-    if(passForm.newPass!==passForm.confirm){setPassErr("Şifreler eşleşmiyor.");return;}
-    // Supabase Auth şifre değiştirme
+    // Supabase şifre sıfırlama e-postası gönder
     try {
-      const r=await fetch(`${SUPABASE_URL}/auth/v1/user`,{
-        method:"PUT",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+(user.auth_token||""),"Content-Type":"application/json"},
-        body:JSON.stringify({password:passForm.newPass})
+      const r = await fetch(`https://xxngmpeoywkcjkjeggse.supabase.co/auth/v1/recover`, {
+        method:"POST",
+        headers:{"apikey":"sb_publishable_UXSRhaVcf4-lM1Y2DadhJA_okbnpujv","Content-Type":"application/json"},
+        body:JSON.stringify({email:user.email})
       });
-      if(r.ok){setPassForm({current:"",newPass:"",confirm:""});setSaveMsg("✅ Şifre güncellendi!");}
-      else{setPassErr("Şifre güncellenemedi. Lütfen tekrar giriş yapın.");}
-    }catch{setPassErr("Şifre güncellenemedi.");}
-    setTimeout(()=>setSaveMsg(""),3000);
+      setPassForm({current:"",newPass:"",confirm:""});
+      setSaveMsg("✅ Şifre sıfırlama bağlantısı " + user.email + " adresine gönderildi. Gelen kutunuzu kontrol edin.");
+    }catch{
+      setPassErr("Bağlantı hatası. Lütfen tekrar deneyin.");
+    }
+    setTimeout(()=>setSaveMsg(""),10000);
   };
 
   const sideItems=[{id:"profile",label:"Profilimi Düzenle"},{id:"my-complaints",label:"Şikayetlerim"},{id:"notifications",label:"Bildirimlerim"},{id:"saved",label:"Kaydedilenler"}];
@@ -1069,11 +1112,10 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
 
             {/* Şifre değiştir */}
             <div style={{...card,marginTop:16}}>
-              <h3 style={{margin:"0 0 16px",fontSize:15,color:C.primary,fontWeight:700}}>🔒 Şifre Değiştir</h3>
+              <h3 style={{margin:"0 0 8px",fontSize:15,color:C.primary,fontWeight:700}}>🔒 Şifre Değiştir</h3>
+              <p style={{fontSize:12.5,color:C.muted,marginBottom:14}}>Şifrenizi değiştirmek için e-posta adresinize bir sıfırlama bağlantısı gönderilecektir.</p>
               {passErr&&<div style={{background:"#fee2e2",color:"#dc2626",padding:"8px 12px",borderRadius:8,marginBottom:12,fontSize:13}}>⚠️ {passErr}</div>}
-              <FormRow label="Yeni Şifre"><input style={inp} type="password" placeholder="En az 6 karakter" value={passForm.newPass} onChange={e=>setPassForm({...passForm,newPass:e.target.value})}/></FormRow>
-              <FormRow label="Yeni Şifre Tekrar"><input style={inp} type="password" placeholder="••••••••" value={passForm.confirm} onChange={e=>setPassForm({...passForm,confirm:e.target.value})}/></FormRow>
-              <button style={{...btn("secondary"),width:"100%"}} onClick={changePassword}>🔒 Şifreyi Güncelle</button>
+              <button style={{...btn("secondary"),width:"100%"}} onClick={changePassword}>📧 Şifre Sıfırlama E-postası Gönder</button>
             </div>
           </div>
         )}
@@ -1132,6 +1174,7 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
   const [customCategories, setCustomCategories] = useState([]);
   const [showAddCat, setShowAddCat] = useState(false);
   const [newCat, setNewCat] = useState({name:"",icon:"📌",color:C.blue});
+  const [catsLoaded, setCatsLoaded] = useState(false);
 
   const canEdit = ["superadmin","admin"].includes(user?.role);
   const isSuperAdmin = user?.role==="superadmin";
@@ -1148,7 +1191,7 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
     sb.get("admin_users","?order=created_at.desc").then(data=>{ if(data&&data.length>0)setAdminUsers(data); }).catch(()=>{});
     sb.get("users","?order=created_at.desc").then(data=>{ if(data&&data.length>0)setAllUsers(data); }).catch(()=>{});
     sb.get("site_settings","?key=eq.footer&select=value").then(data=>{ if(data&&data[0])setFooterData(prev=>({...prev,...data[0].value})); }).catch(()=>{});
-    sb.get("categories","?is_custom=eq.true&order=created_at.desc").then(data=>{ if(data&&data.length>0)setCustomCategories(data); }).catch(()=>{});
+    sb.get("categories","?is_custom=eq.true&order=created_at.desc").then(data=>{ if(data&&data.length>0){setCustomCategories(data);} setCatsLoaded(true); }).catch(()=>setCatsLoaded(true));
   },[]);
 
   const deleteComplaint=async(id)=>{
@@ -1284,29 +1327,94 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
           </div>
         )}
 
-        {tab==="users"&&(
+        {tab==="users"&&(()=>{
+          const [editingUser, setEditingUser] = React.useState(null);
+          const [editUserData, setEditUserData] = React.useState({});
+          const [userSaveMsg, setUserSaveMsg] = React.useState("");
+          const [resetPassEmail, setResetPassEmail] = React.useState("");
+          const [resetPassMsg, setResetPassMsg] = React.useState("");
+
+          const openEdit = (u) => { setEditingUser(u); setEditUserData({name:u.name||"",phone:u.phone||"",city:u.city||""}); setUserSaveMsg(""); setResetPassMsg(""); setResetPassEmail(u.email); };
+          
+          const saveUserEdit = async () => {
+            if(!editingUser)return;
+            await sb.patch("users",editingUser.id,editUserData);
+            setAllUsers(prev=>prev.map(x=>x.id===editingUser.id?{...x,...editUserData}:x));
+            setUserSaveMsg("✅ Kullanıcı güncellendi!");
+            setTimeout(()=>{setUserSaveMsg("");},3000);
+          };
+
+          const sendPasswordReset = async () => {
+            try {
+              await fetch(`${SUPABASE_URL}/auth/v1/recover`,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email:resetPassEmail})});
+              setResetPassMsg("✅ Şifre sıfırlama e-postası gönderildi!");
+            }catch{setResetPassMsg("⚠️ Gönderilemedi.");}
+          };
+
+          const deleteUser = async (id) => {
+            if(!window.confirm("Bu kullanıcıyı silmek istediğinizden emin misiniz?"))return;
+            if(await sb.delete("users",id)){setAllUsers(prev=>prev.filter(x=>x.id!==id));if(editingUser?.id===id)setEditingUser(null);}
+            else alert("Silme başarısız.");
+          };
+
+          return (
           <div>
-            <h2 style={{margin:"0 0 16px",fontSize:18,color:C.primary,fontWeight:700}}>Kullanıcı Yönetimi</h2>
+            <h2 style={{margin:"0 0 16px",fontSize:18,color:C.primary,fontWeight:700}}>Kullanıcı Yönetimi <span style={{fontSize:13,color:C.muted,fontWeight:400}}>({allUsers.length})</span></h2>
             <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",minWidth:500}}>
-                <thead><tr>{["Kullanıcı","E-posta","Şehir","Kayıt","Durum","İşlem"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
+              <table style={{width:"100%",borderCollapse:"collapse",minWidth:550}}>
+                <thead><tr>{["Kullanıcı","E-posta","Telefon","Şehir","Kayıt","Durum","İşlem"].map(h=><th key={h} style={th}>{h}</th>)}</tr></thead>
                 <tbody>
-                  {allUsers.length===0&&<tr><td colSpan={6} style={{...td_,textAlign:"center",color:C.muted,padding:28}}>Kullanıcı bulunamadı</td></tr>}
+                  {allUsers.length===0&&<tr><td colSpan={7} style={{...td_,textAlign:"center",color:C.muted,padding:28}}>Kullanıcı bulunamadı</td></tr>}
                   {allUsers.map(u=>(
                     <tr key={u.id}>
                       <td style={td_}><div style={{display:"flex",alignItems:"center",gap:8}}><Avatar initials={u.avatar||(u.name||"?")[0]} size={28}/><span style={{fontWeight:600,fontSize:13}}>{u.name||"İsimsiz"}</span></div></td>
-                      <td style={{...td_,fontSize:12.5}}>{u.email}</td>
-                      <td style={{...td_,fontSize:12.5}}>{u.city||"-"}</td>
-                      <td style={{...td_,fontSize:11,color:C.muted}}>{u.created_at?new Date(u.created_at).toLocaleDateString("tr-TR"):"-"}</td>
+                      <td style={{...td_,fontSize:12}}>{u.email}</td>
+                      <td style={{...td_,fontSize:12}}>{u.phone||"-"}</td>
+                      <td style={{...td_,fontSize:12}}>{u.city||"-"}</td>
+                      <td style={{...td_,fontSize:11,color:C.muted,whiteSpace:"nowrap"}}>{u.created_at?new Date(u.created_at).toLocaleDateString("tr-TR"):"-"}</td>
                       <td style={td_}><Badge s={u.status||"Aktif"}/></td>
-                      <td style={td_}>{canEdit&&(<button style={btn(u.status==="Engelli"?"success":"ghost","sm")} onClick={async()=>{ await sb.patch("users",u.id,{status:u.status==="Engelli"?"Aktif":"Engelli"}); setAllUsers(prev=>prev.map(x=>x.id===u.id?{...x,status:x.status==="Engelli"?"Aktif":"Engelli"}:x)); }}>{u.status==="Engelli"?"✓ Aç":"🚫 Engelle"}</button>)}</td>
+                      <td style={td_}>
+                        {canEdit&&(
+                          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                            <button style={btn("secondary","sm")} onClick={()=>openEdit(u)}>✏️</button>
+                            <button style={btn(u.status==="Engelli"?"success":"ghost","sm")} onClick={async()=>{ await sb.patch("users",u.id,{status:u.status==="Engelli"?"Aktif":"Engelli"}); setAllUsers(prev=>prev.map(x=>x.id===u.id?{...x,status:x.status==="Engelli"?"Aktif":"Engelli"}:x)); }}>{u.status==="Engelli"?"✓":"🚫"}</button>
+                            <button style={btn("danger","sm")} onClick={()=>deleteUser(u.id)}>🗑</button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            <Modal open={!!editingUser} onClose={()=>setEditingUser(null)} title={`Kullanıcı Düzenle: ${editingUser?.name||""}`}>
+              {editingUser&&(
+                <>
+                  {userSaveMsg&&<div style={{background:"#dcfce7",color:"#16a34a",padding:"8px 12px",borderRadius:8,marginBottom:12,fontSize:13}}>{userSaveMsg}</div>}
+                  <div style={{background:"#f8fafc",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:13,color:C.muted}}>
+                    📧 {editingUser.email} &nbsp;|&nbsp; 📅 {editingUser.created_at?new Date(editingUser.created_at).toLocaleDateString("tr-TR"):"-"}
+                  </div>
+                  <FormRow label="Ad Soyad"><input style={inp} value={editUserData.name} onChange={e=>setEditUserData({...editUserData,name:e.target.value})}/></FormRow>
+                  <FormRow label="Telefon"><input style={inp} placeholder="0533 000 00 00" value={editUserData.phone} onChange={e=>setEditUserData({...editUserData,phone:e.target.value})}/></FormRow>
+                  <FormRow label="Şehir">
+                    <select style={inp} value={editUserData.city} onChange={e=>setEditUserData({...editUserData,city:e.target.value})}>
+                      <option value="">Şehir Seçin</option>
+                      {["Lefkoşa","Gazimağusa","Girne","Güzelyurt","İskele"].map(c=><option key={c}>{c}</option>)}
+                    </select>
+                  </FormRow>
+                  <button style={{...btn("primary"),width:"100%",marginBottom:16}} onClick={saveUserEdit}>💾 Bilgileri Kaydet</button>
+                  <div style={{borderTop:`1px solid ${C.border}`,paddingTop:16}}>
+                    <div style={{fontWeight:600,fontSize:13,marginBottom:8,color:C.primary}}>🔑 Şifre Sıfırlama</div>
+                    {resetPassMsg&&<div style={{background:resetPassMsg.startsWith("✅")?"#dcfce7":"#fee2e2",color:resetPassMsg.startsWith("✅")?"#16a34a":"#dc2626",padding:"8px 12px",borderRadius:8,marginBottom:10,fontSize:13}}>{resetPassMsg}</div>}
+                    <p style={{fontSize:12.5,color:C.muted,marginBottom:10}}>Kullanıcıya şifre sıfırlama e-postası gönder:</p>
+                    <button style={{...btn("secondary"),width:"100%"}} onClick={sendPasswordReset}>📧 Şifre Sıfırlama E-postası Gönder</button>
+                  </div>
+                </>
+              )}
+            </Modal>
           </div>
-        )}
+          );
+        })()}
 
         {tab==="admin-users"&&(
           <div>
@@ -1410,22 +1518,52 @@ const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: 
         )}
 
         {tab==="footer-edit"&&(
-          <div style={{maxWidth:680}}>
+          <div style={{maxWidth:720}}>
             <h2 style={{margin:"0 0 6px",fontSize:18,color:C.primary,fontWeight:700}}>Footer Yönetimi</h2>
-            {footerSaved&&<div style={{background:"#dcfce7",color:"#16a34a",padding:"8px 12px",borderRadius:8,marginBottom:14,fontSize:13}}>✅ Footer kaydedildi!</div>}
+            <p style={{color:C.muted,fontSize:13,marginBottom:16}}>Değişiklikler veritabanına kaydedilir ve kalıcı olur.</p>
+            {footerSaved&&<div style={{background:"#dcfce7",color:"#16a34a",padding:"8px 12px",borderRadius:8,marginBottom:14,fontSize:13}}>✅ Footer başarıyla kaydedildi!</div>}
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
               <div style={card}>
                 <h3 style={{margin:"0 0 14px",fontSize:14,color:C.primary,fontWeight:700}}>📝 Açıklama & Telif</h3>
-                <FormRow label="Açıklama"><textarea style={{...inp,minHeight:60}} value={footerData?.desc||""} onChange={e=>setFooterData({...footerData,desc:e.target.value})}/></FormRow>
-                <FormRow label="Telif Hakkı"><input style={inp} value={footerData?.copyright||""} onChange={e=>setFooterData({...footerData,copyright:e.target.value})}/></FormRow>
+                <FormRow label="Kısa Açıklama">
+                  <textarea style={{...inp,minHeight:70}} value={footerData?.desc||""} onChange={e=>setFooterData({...footerData,desc:e.target.value})}/>
+                </FormRow>
+                <FormRow label="Telif Hakkı Metni">
+                  <input style={inp} value={footerData?.copyright||""} onChange={e=>setFooterData({...footerData,copyright:e.target.value})}/>
+                </FormRow>
               </div>
               <div style={card}>
                 <h3 style={{margin:"0 0 14px",fontSize:14,color:C.primary,fontWeight:700}}>📱 Sosyal Medya</h3>
-                {[["instagram","Instagram"],["facebook","Facebook"],["twitter","X (Twitter)"]].map(([key,label])=>(
-                  <FormRow key={key} label={label}><input style={inp} placeholder="kullanici_adi" value={footerData?.[key]||""} onChange={e=>setFooterData({...footerData,[key]:e.target.value})}/></FormRow>
+                {[["instagram","🟣 Instagram"],["facebook","🔵 Facebook"],["twitter","⚫ X (Twitter)"]].map(([key,label])=>(
+                  <FormRow key={key} label={label}>
+                    <input style={inp} placeholder="kullanici_adi" value={footerData?.[key]||""} onChange={e=>setFooterData({...footerData,[key]:e.target.value})}/>
+                  </FormRow>
                 ))}
               </div>
-              <button style={{...btn("success"),alignSelf:"flex-end"}} onClick={saveFooter}>💾 Kaydet</button>
+              {/* Footer kolonları */}
+              {(footerData?.columns||[]).map((col,ci)=>(
+                <div key={ci} style={card}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:13,fontWeight:600,color:C.muted}}>Kolon {ci+1} Başlığı:</span>
+                      <input style={{...inp,width:"auto",padding:"4px 10px",fontSize:13,fontWeight:700}} value={col.title} onChange={e=>{const cols=[...footerData.columns];cols[ci]={...cols[ci],title:e.target.value};setFooterData({...footerData,columns:cols});}}/>
+                    </div>
+                    <button style={btn("primary","sm")} onClick={()=>{const cols=[...footerData.columns];cols[ci]={...cols[ci],links:[...cols[ci].links,{label:"Yeni Link",url:"#"}]};setFooterData({...footerData,columns:cols});}}>+ Link Ekle</button>
+                  </div>
+                  {col.links.map((link,li)=>(
+                    <div key={li} style={{display:"flex",gap:8,marginBottom:8,alignItems:"center"}}>
+                      <input style={{...inp,flex:2,fontSize:13}} placeholder="Link Adı" value={link.label} onChange={e=>{const cols=[...footerData.columns];cols[ci].links[li]={...link,label:e.target.value};setFooterData({...footerData,columns:cols});}}/>
+                      <input style={{...inp,flex:3,fontSize:13}} placeholder="https://..." value={link.url} onChange={e=>{const cols=[...footerData.columns];cols[ci].links[li]={...link,url:e.target.value};setFooterData({...footerData,columns:cols});}}/>
+                      <button style={btn("danger","sm")} onClick={()=>{const cols=[...footerData.columns];cols[ci].links=cols[ci].links.filter((_,i)=>i!==li);setFooterData({...footerData,columns:cols});}}>🗑</button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {/* Yeni kolon ekle */}
+              <button style={{...btn("ghost"),alignSelf:"flex-start"}} onClick={()=>setFooterData({...footerData,columns:[...(footerData.columns||[]),{title:"Yeni Kolon",links:[{label:"Link",url:"#"}]}]})}>+ Yeni Kolon Ekle</button>
+              <div style={{display:"flex",justifyContent:"flex-end"}}>
+                <button style={btn("success","lg")} onClick={saveFooter}>💾 Değişiklikleri Kaydet</button>
+              </div>
             </div>
           </div>
         )}
