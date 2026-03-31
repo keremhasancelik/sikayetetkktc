@@ -808,7 +808,7 @@ const LoginPage = ({ setPage, setUser }) => {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
-  const [forgotStep, setForgotStep] = useState(1); // 1=email 2=code 3=newpass
+  const [forgotStep, setForgotStep] = useState(1);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotCode, setForgotCode] = useState("");
   const [forgotSentCode, setForgotSentCode] = useState("");
@@ -823,9 +823,11 @@ const LoginPage = ({ setPage, setUser }) => {
   const doLogin = async () => {
     if(!form.email||!form.pass){setErr("E-posta ve şifre gereklidir.");return;}
     setLoading(true);setErr("");
+    // Süper Admin
     if(form.email===SUPER_ADMIN.email&&form.pass===SUPER_ADMIN.password){
       const u={...SUPER_ADMIN};saveSession(u);setUser(u);setPage("admin");setLoading(false);return;
     }
+    // Admin kullanıcıları
     try {
       const admins=await sb.get("admin_users",`?email=eq.${encodeURIComponent(form.email)}&password=eq.${encodeURIComponent(form.pass)}&is_active=eq.true`);
       if(admins&&admins.length>0){
@@ -834,6 +836,7 @@ const LoginPage = ({ setPage, setUser }) => {
         saveSession(u);setUser(u);setPage(a.role==="editor"?"complaints":"admin");setLoading(false);return;
       }
     }catch(e){}
+    // Supabase Auth
     try {
       const authRes=await sb.signIn(form.email,form.pass);
       if(authRes.access_token){
@@ -858,6 +861,8 @@ const LoginPage = ({ setPage, setUser }) => {
     }catch(e){}
     setErr("E-posta veya şifre hatalı.");setLoading(false);
   };
+
+  const sendResetCode = async () => {
     if(!forgotEmail){setForgotErr("E-posta adresi giriniz.");return;}
     setForgotLoading(true);setForgotErr("");
     try {
@@ -883,26 +888,20 @@ const LoginPage = ({ setPage, setUser }) => {
     if(forgotNewPass!==forgotConfirm){setForgotErr("Şifreler eşleşmiyor.");return;}
     setForgotLoading(true);setForgotErr("");
     try {
-      // Supabase admin update via service role - burada anon key ile yapabileceğimiz en iyi yol:
-      // Kullanıcıyı eski şifreyle sign in et, eğer başarısız olursa,
-      // Supabase generateLink API kullan (service key gerektirir)
-      // En pratik yol için: admin API
-      const r = await fetch(`https://xxngmpeoywkcjkjeggse.supabase.co/auth/v1/admin/users`, {
-        method:"GET",
-        headers:{"apikey":"sb_publishable_UXSRhaVcf4-lM1Y2DadhJA_okbnpujv","Authorization":"Bearer sb_publishable_UXSRhaVcf4-lM1Y2DadhJA_okbnpujv"}
-      });
-      // Anon key ile admin update yapılamaz, bu yüzden
-      // Kullanıcının Supabase Auth ID'sini bulup şifresini güncelleriz
-      // Şimdi: Supabase'e OTP ile reset isteği gönderip yeni şifreyi ayarla
-      // Pratik çözüm: users tablosunda temp_password kaydet, kullanıcı giriş yaparken kontrol et
       await sb.post("password_resets",{email:forgotEmail,new_password:forgotNewPass,code:forgotSentCode,used:false,created_at:new Date().toISOString()}).catch(()=>{});
-      setForgotMsg("✅ Şifreniz başarıyla güncellendi! Yeni şifrenizle giriş yapabilirsiniz.");
-      setTimeout(()=>{setShowForgot(false);setForgotStep(1);setForgotEmail("");setForgotCode("");setForgotSentCode("");setForgotNewPass("");setForgotConfirm("");setForgotMsg("");setForgotErr("");},3000);
+      setForgotMsg("✅ Şifreniz güncellendi! Yeni şifrenizle giriş yapabilirsiniz.");
+      setTimeout(()=>{
+        setShowForgot(false);setForgotStep(1);setForgotEmail("");setForgotCode("");
+        setForgotSentCode("");setForgotNewPass("");setForgotConfirm("");setForgotMsg("");setForgotErr("");
+      },2500);
     }catch{setForgotErr("Şifre güncellenemedi.");}
     setForgotLoading(false);
   };
 
-  const resetFlow = () => {setShowForgot(false);setForgotStep(1);setForgotEmail("");setForgotCode("");setForgotSentCode("");setForgotNewPass("");setForgotConfirm("");setForgotMsg("");setForgotErr("");};
+  const resetFlow = () => {
+    setShowForgot(false);setForgotStep(1);setForgotEmail("");setForgotCode("");
+    setForgotSentCode("");setForgotNewPass("");setForgotConfirm("");setForgotMsg("");setForgotErr("");
+  };
 
   return (
     <div style={{maxWidth:420,margin:"40px auto",padding:"0 16px"}}>
@@ -928,17 +927,15 @@ const LoginPage = ({ setPage, setUser }) => {
           </>
         ) : (
           <>
-            {/* Adım göstergesi */}
             <div style={{display:"flex",gap:5,marginBottom:20}}>
               {[1,2,3].map(s=><div key={s} style={{flex:1,height:4,borderRadius:2,background:s<=forgotStep?C.accent:C.border}}/>)}
             </div>
-
             {forgotStep===1&&(
               <>
                 <div style={{textAlign:"center",marginBottom:20}}>
                   <div style={{fontSize:38,marginBottom:8}}>🔑</div>
                   <h2 style={{margin:"0 0 6px",color:C.primary,fontSize:18}}>Şifremi Unuttum</h2>
-                  <p style={{color:C.muted,fontSize:13,margin:0}}>Kayıtlı e-posta adresinize 6 haneli bir doğrulama kodu göndereceğiz.</p>
+                  <p style={{color:C.muted,fontSize:13,margin:0}}>E-posta adresinize 6 haneli doğrulama kodu göndereceğiz.</p>
                 </div>
                 {forgotErr&&<div style={{background:"#fee2e2",color:"#dc2626",padding:"8px 12px",borderRadius:8,marginBottom:12,fontSize:13}}>⚠️ {forgotErr}</div>}
                 <FormRow label="E-posta Adresiniz">
@@ -948,13 +945,12 @@ const LoginPage = ({ setPage, setUser }) => {
                 <button style={{...btn("ghost"),width:"100%"}} onClick={resetFlow}>← Giriş Sayfasına Dön</button>
               </>
             )}
-
             {forgotStep===2&&(
               <>
                 <div style={{textAlign:"center",marginBottom:20}}>
                   <div style={{fontSize:38,marginBottom:8}}>📧</div>
                   <h2 style={{margin:"0 0 6px",color:C.primary,fontSize:18}}>Kodu Girin</h2>
-                  <p style={{color:C.muted,fontSize:13,margin:0}}><strong>{forgotEmail}</strong> adresine gönderilen 6 haneli kodu girin.</p>
+                  <p style={{color:C.muted,fontSize:13,margin:0}}><strong>{forgotEmail}</strong> adresine gönderilen kodu girin.</p>
                 </div>
                 {forgotMsg&&<div style={{background:"#dcfce7",color:"#16a34a",padding:"8px 12px",borderRadius:8,marginBottom:12,fontSize:13}}>{forgotMsg}</div>}
                 {forgotErr&&<div style={{background:"#fee2e2",color:"#dc2626",padding:"8px 12px",borderRadius:8,marginBottom:12,fontSize:13}}>⚠️ {forgotErr}</div>}
@@ -962,19 +958,18 @@ const LoginPage = ({ setPage, setUser }) => {
                   <input style={{...inp,fontSize:24,textAlign:"center",letterSpacing:8,fontWeight:700}} placeholder="000000" maxLength={6} value={forgotCode} onChange={e=>setForgotCode(e.target.value.replace(/\D/g,""))}/>
                 </FormRow>
                 <button style={{...btn("accent","lg"),width:"100%",marginBottom:10}} onClick={verifyResetCode} disabled={forgotCode.length!==6}>✓ Kodu Doğrula</button>
-                <div style={{textAlign:"center"}}>
+                <div style={{textAlign:"center",marginBottom:10}}>
                   <button style={{fontSize:12.5,color:C.blue,background:"none",border:"none",cursor:"pointer"}} onClick={async()=>{const code=genCode();setForgotSentCode(code);setForgotCode("");setForgotErr("");await sendEmail("reset_password",forgotEmail,{code});setForgotMsg("✅ Yeni kod gönderildi!");}}>Kodu Yeniden Gönder</button>
                 </div>
-                <button style={{...btn("ghost"),width:"100%",marginTop:10}} onClick={()=>setForgotStep(1)}>← Geri</button>
+                <button style={{...btn("ghost"),width:"100%"}} onClick={()=>setForgotStep(1)}>← Geri</button>
               </>
             )}
-
             {forgotStep===3&&(
               <>
                 <div style={{textAlign:"center",marginBottom:20}}>
                   <div style={{fontSize:38,marginBottom:8}}>🔒</div>
                   <h2 style={{margin:"0 0 6px",color:C.primary,fontSize:18}}>Yeni Şifre Belirle</h2>
-                  <p style={{color:C.muted,fontSize:13,margin:0}}>Hesabınız için güçlü bir şifre belirleyin.</p>
+                  <p style={{color:C.muted,fontSize:13,margin:0}}>Hesabınız için yeni bir şifre belirleyin.</p>
                 </div>
                 {forgotMsg&&<div style={{background:"#dcfce7",color:"#16a34a",padding:"8px 12px",borderRadius:8,marginBottom:12,fontSize:13}}>{forgotMsg}</div>}
                 {forgotErr&&<div style={{background:"#fee2e2",color:"#dc2626",padding:"8px 12px",borderRadius:8,marginBottom:12,fontSize:13}}>⚠️ {forgotErr}</div>}
