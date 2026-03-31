@@ -856,9 +856,8 @@ const LoginPage = ({ setPage, setUser }) => {
         }
       }
     }catch(e){}
+    setErr("E-posta veya şifre hatalı.");setLoading(false);
   };
-
-  const sendResetCode = async () => {
     if(!forgotEmail){setForgotErr("E-posta adresi giriniz.");return;}
     setForgotLoading(true);setForgotErr("");
     try {
