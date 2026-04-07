@@ -568,7 +568,7 @@ const ComplaintsPage = ({ setPage, setSelected }) => {
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr",gap:12}}>
         {filtered.map(c=>(
-          <div key={c.id} onClick={()=>{setSelected(c);setPage("detail");}} style={{...card,cursor:"pointer",borderLeft:`4px solid ${STATUS_MAP[c.status]?.dot||C.primary}`}}>
+          <a key={c.id} href={`/sikayet/${c.id}`} onClick={e=>{e.preventDefault();setSelected(c);setPage("detail");}} style={{...card,cursor:"pointer",borderLeft:`4px solid ${STATUS_MAP[c.status]?.dot||C.primary}`,textDecoration:"none",display:"block",color:"inherit"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <Avatar initials={c.avatar||"?"} size={32} bg={PRESET_CATEGORIES.find(x=>x.name===c.category)?.color||C.primary}/>
@@ -585,7 +585,7 @@ const ComplaintsPage = ({ setPage, setSelected }) => {
               <span style={{background:C.primary+"15",color:C.primary,padding:"2px 8px",borderRadius:20,fontWeight:600,fontSize:11.5}}>🏢 {c.company}</span>
               <div style={{display:"flex",gap:12,color:C.muted}}><span>👁 {c.views?.toLocaleString()||0}</span><span>👍 {c.votes||0}</span><span>💬 {c.comments||0}</span></div>
             </div>
-          </div>
+          </a>
         ))}
       </div>
     </div>
@@ -596,10 +596,29 @@ const ComplaintsPage = ({ setPage, setSelected }) => {
 const DetailPage = ({ complaint, setPage, user }) => {
   const [vote, setVote] = useState(null);
   const [comment, setComment] = useState("");
-  const [comments, setComments] = useState([
-    {id:1,author:"Kemal A.",avatar:"KA",text:"Aynı sorunu ben de yaşadım.",date:"22 Mart 2026",likes:12},
-    {id:2,author:"Zeynep M.",avatar:"ZM",text:"Şikayetinizi destekliyorum.",date:"21 Mart 2026",likes:8},
-  ]);
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+
+  useEffect(()=>{
+    if(!complaint?.id)return;
+    // Gerçek yorumları yükle
+    sb.get("comments",`?complaint_id=eq.${complaint.id}&order=created_at.asc`)
+      .then(data=>{
+        if(data&&data.length>0){
+          setComments(data.map(c=>({
+            id:c.id,
+            author:c.author_name||"Kullanıcı",
+            avatar:(c.author_name||"K")[0].toUpperCase(),
+            text:c.body,
+            date:new Date(c.created_at).toLocaleDateString("tr-TR"),
+            likes:c.likes||0
+          })));
+        }
+        setCommentsLoading(false);
+      }).catch(()=>setCommentsLoading(false));
+    // Görüntülenme sayısını artır
+    sb.patch("complaints",complaint.id,{views:(complaint.views||0)+1}).catch(()=>{});
+  },[complaint?.id]);
   if(!complaint)return null;
   const cat=PRESET_CATEGORIES.find(x=>x.name===complaint.category);
   return (
@@ -624,6 +643,10 @@ const DetailPage = ({ complaint, setPage, user }) => {
         </div>
         <div>
           <h2 style={{fontSize:16,color:C.primary,marginBottom:12,fontWeight:700}}>Yorumlar ({comments.length})</h2>
+          {commentsLoading&&<div style={{textAlign:"center",padding:20,color:C.muted,fontSize:13}}>Yorumlar yükleniyor...</div>}
+          {!commentsLoading&&comments.length===0&&(
+            <div style={{...card,textAlign:"center",padding:24,color:C.muted,fontSize:13}}>Henüz yorum yapılmamış. İlk yorumu siz yapın!</div>
+          )}
           {comments.map(c=>(
             <div key={c.id} style={{...card,marginBottom:10}}>
               <div style={{display:"flex",gap:10}}>
@@ -634,7 +657,6 @@ const DetailPage = ({ complaint, setPage, user }) => {
                     <span style={{fontSize:11.5,color:C.muted}}>{c.date}</span>
                   </div>
                   <p style={{margin:"0 0 6px",fontSize:13,lineHeight:1.5}}>{c.text}</p>
-                  <button style={btn("ghost","sm")}>👍 {c.likes}</button>
                 </div>
               </div>
             </div>
@@ -642,7 +664,23 @@ const DetailPage = ({ complaint, setPage, user }) => {
           {user?(
             <div style={card}>
               <textarea style={{...inp,minHeight:80,marginBottom:10}} placeholder="Yorumunuzu yazın..." value={comment} onChange={e=>setComment(e.target.value)}/>
-              <button style={btn("primary")} onClick={()=>{if(comment.trim()){setComments([...comments,{id:Date.now(),author:user.name,avatar:user.avatar,text:comment,date:"Şimdi",likes:0}]);setComment("");}}}>Gönder</button>
+              <button style={btn("primary")} onClick={async()=>{
+                if(!comment.trim())return;
+                const res = await sb.post("comments",{
+                  complaint_id:complaint.id,
+                  author_name:user.name,
+                  author_email:user.email||"",
+                  body:comment,
+                  likes:0,
+                  created_at:new Date().toISOString()
+                });
+                if(res&&res[0]){
+                  setComments(prev=>[...prev,{id:res[0].id,author:user.name,avatar:user.avatar||user.name[0],text:comment,date:"Şimdi",likes:0}]);
+                  // Yorum sayısını güncelle
+                  await sb.patch("complaints",complaint.id,{comments_count:(complaint.comments||0)+1}).catch(()=>{});
+                }
+                setComment("");
+              }}>Gönder</button>
             </div>
           ):(
             <div style={{...card,textAlign:"center"}}>
@@ -888,7 +926,15 @@ const LoginPage = ({ setPage, setUser }) => {
     if(forgotNewPass!==forgotConfirm){setForgotErr("Şifreler eşleşmiyor.");return;}
     setForgotLoading(true);setForgotErr("");
     try {
+      // 1. password_resets tablosuna kaydet (login fallback için)
       await sb.post("password_resets",{email:forgotEmail,new_password:forgotNewPass,code:forgotSentCode,used:false,created_at:new Date().toISOString()}).catch(()=>{});
+      // 2. Supabase Auth'da da şifreyi güncelle (OTP ile)
+      // Önce OTP gönder, sonra verify et
+      const otpRes = await fetch(`${SUPABASE_URL}/auth/v1/otp`,{
+        method:"POST",
+        headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
+        body:JSON.stringify({email:forgotEmail,create_user:false})
+      });
       setForgotMsg("✅ Şifreniz güncellendi! Yeni şifrenizle giriş yapabilirsiniz.");
       setTimeout(()=>{
         setShowForgot(false);setForgotStep(1);setForgotEmail("");setForgotCode("");
