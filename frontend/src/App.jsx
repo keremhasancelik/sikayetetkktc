@@ -66,17 +66,11 @@ const buildComplaintUrl = (c) => {
   const cat = toSlug(c.category||"diger");
   const company = toSlug(c.company||"genel");
   const title = toSlug(c.title||"sikayet");
-  return `/${cat}/${company}/${title}--${c.id}`;
+  return `/${cat}/${company}/${title}`;
 };
 
 const buildCategoryUrl = (category) => `/${toSlug(category)}`;
 const buildCompanyUrl = (category, company) => `/${toSlug(category)}/${toSlug(company)}`;
-
-// URL'den ID çıkar (--123 formatından)
-const getIdFromSlug = (slug) => {
-  const parts = slug.split("--");
-  return parts[parts.length-1];
-};
 const EMAIL_WORKER = "https://sikayetetkktc-email.keremhasancelik1905.workers.dev";
 const sendEmail = async (type, to, data = {}) => {
   try {
@@ -596,26 +590,29 @@ const ComplaintsPage = ({ setPage, setSelected }) => {
         </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr",gap:12}}>
-        {filtered.map(c=>(
-          <a key={c.id} href={`/sikayet/${c.id}`} onClick={e=>{e.preventDefault();setSelected(c);setPage("detail");}} style={{...card,cursor:"pointer",borderLeft:`4px solid ${STATUS_MAP[c.status]?.dot||C.primary}`,textDecoration:"none",display:"block",color:"inherit"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <Avatar initials={c.avatar||"?"} size={32} bg={PRESET_CATEGORIES.find(x=>x.name===c.category)?.color||C.primary}/>
-                <div>
-                  <span style={{fontWeight:600,fontSize:13}}>{c.author}</span>
-                  <span style={{fontSize:11.5,color:C.muted,marginLeft:6}}>{c.date}</span>
+        {filtered.map(c=>{
+          const url = buildComplaintUrl(c);
+          return (
+            <a key={c.id} href={url} onClick={e=>{e.preventDefault();setSelected(c);}} style={{...card,cursor:"pointer",borderLeft:`4px solid ${STATUS_MAP[c.status]?.dot||C.primary}`,textDecoration:"none",display:"block",color:"inherit"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <Avatar initials={c.avatar||"?"} size={32} bg={PRESET_CATEGORIES.find(x=>x.name===c.category)?.color||C.primary}/>
+                  <div>
+                    <span style={{fontWeight:600,fontSize:13}}>{c.author}</span>
+                    <span style={{fontSize:11.5,color:C.muted,marginLeft:6}}>{c.date}</span>
+                  </div>
                 </div>
+                <Badge s={c.status}/>
               </div>
-              <Badge s={c.status}/>
-            </div>
-            <h3 style={{margin:"0 0 6px",fontSize:14,color:C.text}}>{c.title}</h3>
-            <p style={{margin:"0 0 8px",fontSize:12.5,color:C.muted,lineHeight:1.5}}>{c.body.substring(0,150)}...</p>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,flexWrap:"wrap",gap:6}}>
-              <span style={{background:C.primary+"15",color:C.primary,padding:"2px 8px",borderRadius:20,fontWeight:600,fontSize:11.5}}>🏢 {c.company}</span>
-              <div style={{display:"flex",gap:12,color:C.muted}}><span>👁 {c.views?.toLocaleString()||0}</span><span>👍 {c.votes||0}</span><span>💬 {c.comments||0}</span></div>
-            </div>
-          </a>
-        ))}
+              <h3 style={{margin:"0 0 6px",fontSize:14,color:C.text}}>{c.title}</h3>
+              <p style={{margin:"0 0 8px",fontSize:12.5,color:C.muted,lineHeight:1.5}}>{c.body.substring(0,150)}...</p>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,flexWrap:"wrap",gap:6}}>
+                <span style={{background:C.primary+"15",color:C.primary,padding:"2px 8px",borderRadius:20,fontWeight:600,fontSize:11.5}}>🏢 {c.company}</span>
+                <div style={{display:"flex",gap:12,color:C.muted}}><span>👁 {c.views?.toLocaleString()||0}</span><span>👍 {c.votes||0}</span><span>💬 {c.comments||0}</span></div>
+              </div>
+            </a>
+          );
+        })}
       </div>
     </div>
   );
@@ -2094,23 +2091,30 @@ export default function App() {
       if(path==="/profil") { setPage("profile"); return; }
       if(path==="/admin") { setPage("admin"); return; }
 
-      // /kategori/kurum/baslik--id
+      // /kategori/kurum/baslik-slug (3 parça)
       if(parts.length===3) {
-        const id = getIdFromSlug(parts[2]);
-        if(id && !isNaN(id)) {
-          sb.get("complaints",`?id=eq.${id}`).then(data=>{
-            if(data&&data[0]){
-              const c=data[0];
-              setSelected({id:c.id,title:c.title,body:c.body,category:c.category,company:c.company,
-                author:c.author_name,avatar:c.author_avatar||"?",
-                date:new Date(c.created_at).toLocaleDateString("tr-TR"),
-                views:c.views||0,votes:c.votes||0,comments:c.comments_count||0,status:c.status});
-              setPage("detail");
+        const titleSlug = parts[2];
+        // Title slug'dan şikayeti bul
+        sb.get("complaints","?is_published=eq.true&order=created_at.desc")
+          .then(data=>{
+            if(data&&data.length>0){
+              const found = data.find(c=>
+                toSlug(c.category||"")===parts[0] &&
+                toSlug(c.company||"")===parts[1] &&
+                toSlug(c.title||"")===titleSlug
+              );
+              if(found){
+                setSelected({id:found.id,title:found.title,body:found.body,category:found.category,company:found.company,
+                  author:found.author_name,avatar:found.author_avatar||"?",
+                  date:new Date(found.created_at).toLocaleDateString("tr-TR"),
+                  views:found.views||0,votes:found.votes||0,comments:found.comments_count||0,status:found.status});
+                setPage("detail");
+              } else {
+                // Bulunamazsa company sayfasına git
+                setPage(`company:${parts[0]}:${parts[1]}`);
+              }
             }
           }).catch(()=>{});
-          return;
-        }
-        setPage(`company:${parts[0]}:${parts[1]}`);
         return;
       }
 
