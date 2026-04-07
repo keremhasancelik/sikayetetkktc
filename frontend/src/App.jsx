@@ -48,7 +48,35 @@ const sb = {
   },
 };
 
-// ─── EMAIL SERVICE ───────────────────────────────────────────
+// ─── SLUG UTILS ─────────────────────────────────────────────
+const toSlug = (str) => {
+  if(!str) return "";
+  return str
+    .toLowerCase()
+    .replace(/ğ/g,"g").replace(/ü/g,"u").replace(/ş/g,"s")
+    .replace(/ı/g,"i").replace(/ö/g,"o").replace(/ç/g,"c")
+    .replace(/[^a-z0-9\s-]/g,"")
+    .trim()
+    .replace(/\s+/g,"-")
+    .replace(/-+/g,"-")
+    .substring(0, 80);
+};
+
+const buildComplaintUrl = (c) => {
+  const cat = toSlug(c.category||"diger");
+  const company = toSlug(c.company||"genel");
+  const title = toSlug(c.title||"sikayet");
+  return `/${cat}/${company}/${title}--${c.id}`;
+};
+
+const buildCategoryUrl = (category) => `/${toSlug(category)}`;
+const buildCompanyUrl = (category, company) => `/${toSlug(category)}/${toSlug(company)}`;
+
+// URL'den ID çıkar (--123 formatından)
+const getIdFromSlug = (slug) => {
+  const parts = slug.split("--");
+  return parts[parts.length-1];
+};
 const EMAIL_WORKER = "https://sikayetetkktc-email.keremhasancelik1905.workers.dev";
 const sendEmail = async (type, to, data = {}) => {
   try {
@@ -493,7 +521,7 @@ const CategoriesPage = ({ setPage }) => {
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12}}>
         {categories.map(cat=>(
-          <div key={cat.id} onClick={()=>setPage("complaints")} style={{...card,cursor:"pointer",borderLeft:`4px solid ${cat.color}`,padding:"14px 16px"}}>
+          <a key={cat.id} href={buildCategoryUrl(cat.name)} onClick={e=>{e.preventDefault();setPage("category:"+toSlug(cat.name));}} style={{...card,cursor:"pointer",borderLeft:`4px solid ${cat.color}`,padding:"14px 16px",textDecoration:"none",color:"inherit",display:"block"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
               <div style={{fontSize:24}}>{cat.icon}</div>
               <div>
@@ -503,7 +531,7 @@ const CategoriesPage = ({ setPage }) => {
             </div>
             {!cat.custom&&<div style={{height:4,borderRadius:2,background:C.bg}}><div style={{height:"100%",width:`${Math.min((cat.count/12840)*100,100)}%`,background:cat.color,borderRadius:2}}/></div>}
             {cat.custom&&<span style={{fontSize:10,background:C.accent+"15",color:C.accent,padding:"1px 6px",borderRadius:20,fontWeight:600}}>Kullanıcı</span>}
-          </div>
+          </a>
         ))}
       </div>
       <Modal open={showAdd} onClose={()=>setShowAdd(false)} title="Yeni Kategori Ekle">
@@ -1356,6 +1384,232 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
   );
 };
 
+// ─── COMPANY PAGE ─────────────────────────────────────────────
+const CompanyPage = ({ categorySlug, companySlug, setPage, setSelectedAndPage, user }) => {
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [companyName, setCompanyName] = useState("");
+  const [categoryName, setCategoryName] = useState("");
+
+  useEffect(()=>{
+    // Şikayetleri yükle - company slug'a göre filtrele
+    sb.get("complaints","?is_published=eq.true&order=created_at.desc")
+      .then(data=>{
+        if(data&&data.length>0){
+          const filtered = data.filter(c =>
+            toSlug(c.company||"") === companySlug &&
+            toSlug(c.category||"") === categorySlug
+          );
+          if(filtered.length>0){
+            setCompanyName(filtered[0].company);
+            setCategoryName(filtered[0].category);
+          }
+          setComplaints(filtered.map(c=>({
+            id:c.id,title:c.title,body:c.body,category:c.category,company:c.company,
+            author:c.author_name,avatar:c.author_avatar||"?",
+            date:new Date(c.created_at).toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"}),
+            views:c.views||0,votes:c.votes||0,comments:c.comments_count||0,status:c.status
+          })));
+        }
+        setLoading(false);
+      }).catch(()=>setLoading(false));
+  },[categorySlug, companySlug]);
+
+  const stats = {
+    total: complaints.length,
+    open: complaints.filter(c=>c.status==="Açık").length,
+    resolved: complaints.filter(c=>c.status==="Çözüldü").length,
+    resolveRate: complaints.length > 0 ? Math.round((complaints.filter(c=>c.status==="Çözüldü").length/complaints.length)*100) : 0,
+    totalViews: complaints.reduce((s,c)=>s+(c.views||0),0),
+    totalVotes: complaints.reduce((s,c)=>s+(c.votes||0),0),
+  };
+
+  const cat = PRESET_CATEGORIES.find(x=>toSlug(x.name)===categorySlug);
+
+  return (
+    <div style={{maxWidth:1100,margin:"0 auto",padding:"24px 16px"}}>
+      {/* Breadcrumb */}
+      <div style={{fontSize:13,color:C.muted,marginBottom:16,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+        <span style={{cursor:"pointer",color:C.blue}} onClick={()=>setPage("home")}>Ana Sayfa</span>
+        <span>›</span>
+        <span style={{cursor:"pointer",color:C.blue}} onClick={()=>setPage("category:"+categorySlug)}>{categoryName||categorySlug}</span>
+        <span>›</span>
+        <span style={{color:C.text,fontWeight:600}}>{companyName||companySlug}</span>
+      </div>
+
+      {/* Kurum kartı */}
+      <div style={{...card,marginBottom:20,borderLeft:`5px solid ${cat?.color||C.primary}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+          <div style={{width:64,height:64,borderRadius:12,background:cat?.color||C.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>
+            {cat?.icon||"🏢"}
+          </div>
+          <div style={{flex:1}}>
+            <h1 style={{margin:"0 0 4px",fontSize:"clamp(18px,3vw,24px)",fontWeight:800,color:C.primary}}>{companyName||companySlug}</h1>
+            <div style={{fontSize:13,color:C.muted}}>{categoryName||categorySlug}</div>
+          </div>
+          <button style={btn("accent")} onClick={()=>setPage(user?"new-complaint":"login")}>+ Şikayet Yaz</button>
+        </div>
+      </div>
+
+      {/* İstatistikler */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:24}}>
+        {[
+          ["📋","Toplam",stats.total,C.primary],
+          ["🔴","Açık",stats.open,C.accent],
+          ["✅","Çözülen",stats.resolved,C.green],
+          ["📊","Çözüm Oranı",stats.resolveRate+"%",C.blue],
+          ["👁","Toplam Görüntülenme",stats.totalViews.toLocaleString(),C.purple],
+          ["👍","Toplam Oy",stats.totalVotes,C.amber],
+        ].map(([icon,label,val,color])=>(
+          <div key={label} style={{...card,textAlign:"center",padding:"14px 10px",borderTop:`3px solid ${color}`}}>
+            <div style={{fontSize:20,marginBottom:4}}>{icon}</div>
+            <div style={{fontSize:18,fontWeight:800,color}}>{val}</div>
+            <div style={{fontSize:11,color:C.muted}}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Şikayet listesi */}
+      <h2 style={{margin:"0 0 14px",fontSize:18,fontWeight:700,color:C.primary}}>
+        {companyName||companySlug} Şikayetleri ({complaints.length})
+      </h2>
+      {loading&&<div style={{textAlign:"center",padding:40,color:C.muted}}>Yükleniyor...</div>}
+      {!loading&&complaints.length===0&&(
+        <div style={{...card,textAlign:"center",padding:40}}>
+          <div style={{fontSize:44,marginBottom:14}}>📭</div>
+          <h3>Bu kuruma ait şikayet bulunamadı.</h3>
+          <button style={{...btn("accent"),marginTop:12}} onClick={()=>setPage(user?"new-complaint":"login")}>İlk Şikayeti Yaz</button>
+        </div>
+      )}
+      <div style={{display:"grid",gap:12}}>
+        {complaints.map(c=>(
+          <a key={c.id} href={buildComplaintUrl(c)} onClick={e=>{e.preventDefault();setSelectedAndPage(c);}} style={{...card,display:"block",textDecoration:"none",color:"inherit",cursor:"pointer",borderLeft:`4px solid ${STATUS_MAP[c.status]?.dot||C.primary}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:6}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <Avatar initials={c.avatar||"?"} size={30} bg={cat?.color||C.primary}/>
+                <div>
+                  <span style={{fontWeight:600,fontSize:13}}>{c.author}</span>
+                  <span style={{fontSize:11.5,color:C.muted,marginLeft:6}}>{c.date}</span>
+                </div>
+              </div>
+              <Badge s={c.status}/>
+            </div>
+            <h3 style={{margin:"0 0 6px",fontSize:14,color:C.text}}>{c.title}</h3>
+            <p style={{margin:"0 0 8px",fontSize:12.5,color:C.muted,lineHeight:1.5}}>{c.body.substring(0,150)}...</p>
+            <div style={{display:"flex",gap:12,fontSize:12,color:C.muted}}>
+              <span>👁 {c.views?.toLocaleString()||0}</span><span>👍 {c.votes||0}</span><span>💬 {c.comments||0}</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── CATEGORY PAGE ────────────────────────────────────────────
+const CategoryPage = ({ categorySlug, setPage, setSelectedAndPage, user }) => {
+  const [companies, setCompanies] = useState([]);
+  const [recentComplaints, setRecentComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const cat = PRESET_CATEGORIES.find(x=>toSlug(x.name)===categorySlug);
+  const categoryName = cat?.name || categorySlug;
+
+  useEffect(()=>{
+    sb.get("complaints",`?is_published=eq.true&order=created_at.desc`)
+      .then(data=>{
+        if(data&&data.length>0){
+          const filtered = data.filter(c=>toSlug(c.category||"")===categorySlug);
+          // Şirketleri grupla
+          const compMap = {};
+          filtered.forEach(c=>{
+            const key = c.company||"Diğer";
+            if(!compMap[key]) compMap[key]={name:key,count:0,resolved:0,latest:c.created_at};
+            compMap[key].count++;
+            if(c.status==="Çözüldü") compMap[key].resolved++;
+          });
+          setCompanies(Object.values(compMap).sort((a,b)=>b.count-a.count));
+          setRecentComplaints(filtered.slice(0,6).map(c=>({
+            id:c.id,title:c.title,body:c.body,category:c.category,company:c.company,
+            author:c.author_name,avatar:c.author_avatar||"?",
+            date:new Date(c.created_at).toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"}),
+            views:c.views||0,votes:c.votes||0,comments:c.comments_count||0,status:c.status
+          })));
+        }
+        setLoading(false);
+      }).catch(()=>setLoading(false));
+  },[categorySlug]);
+
+  return (
+    <div style={{maxWidth:1100,margin:"0 auto",padding:"24px 16px"}}>
+      {/* Breadcrumb */}
+      <div style={{fontSize:13,color:C.muted,marginBottom:16,display:"flex",gap:6,alignItems:"center"}}>
+        <span style={{cursor:"pointer",color:C.blue}} onClick={()=>setPage("home")}>Ana Sayfa</span>
+        <span>›</span>
+        <span style={{color:C.text,fontWeight:600}}>{categoryName}</span>
+      </div>
+
+      {/* Kategori başlık */}
+      <div style={{...card,marginBottom:24,borderLeft:`5px solid ${cat?.color||C.primary}`,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+        <div style={{fontSize:42}}>{cat?.icon||"📋"}</div>
+        <div style={{flex:1}}>
+          <h1 style={{margin:"0 0 4px",fontSize:"clamp(20px,4vw,28px)",fontWeight:800,color:C.primary}}>{categoryName}</h1>
+          <div style={{fontSize:13,color:C.muted}}>{companies.length} kurum · {recentComplaints.length}+ şikayet</div>
+        </div>
+        <button style={btn("accent")} onClick={()=>setPage(user?"new-complaint":"login")}>+ Şikayet Yaz</button>
+      </div>
+
+      {/* Kurumlar */}
+      {companies.length>0&&(
+        <div style={{marginBottom:28}}>
+          <h2 style={{margin:"0 0 14px",fontSize:17,fontWeight:700,color:C.primary}}>Kurumlar & İşletmeler</h2>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
+            {companies.map(comp=>(
+              <a key={comp.name} href={buildCompanyUrl(categoryName,comp.name)} onClick={e=>{e.preventDefault();setPage(`company:${categorySlug}:${toSlug(comp.name)}`);}}
+                style={{...card,cursor:"pointer",textDecoration:"none",color:"inherit",borderTop:`3px solid ${cat?.color||C.primary}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div style={{fontWeight:700,fontSize:14,color:C.text}}>{comp.name}</div>
+                  <span style={{fontSize:11,background:(cat?.color||C.primary)+"15",color:cat?.color||C.primary,padding:"2px 8px",borderRadius:20,fontWeight:600}}>{comp.count}</span>
+                </div>
+                <div style={{display:"flex",gap:8,fontSize:12,color:C.muted}}>
+                  <span style={{color:C.accent}}>🔴 {comp.count-comp.resolved} açık</span>
+                  <span style={{color:C.green}}>✅ {comp.resolved} çözüldü</span>
+                </div>
+                <div style={{marginTop:8,height:4,borderRadius:2,background:C.border}}>
+                  <div style={{height:"100%",width:`${comp.count>0?Math.round((comp.resolved/comp.count)*100):0}%`,background:C.green,borderRadius:2}}/>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Son şikayetler */}
+      <h2 style={{margin:"0 0 14px",fontSize:17,fontWeight:700,color:C.primary}}>Son Şikayetler</h2>
+      {loading&&<div style={{textAlign:"center",padding:40,color:C.muted}}>Yükleniyor...</div>}
+      <div style={{display:"grid",gap:12}}>
+        {recentComplaints.map(c=>(
+          <a key={c.id} href={buildComplaintUrl(c)} onClick={e=>{e.preventDefault();setSelectedAndPage(c);}}
+            style={{...card,display:"block",textDecoration:"none",color:"inherit",cursor:"pointer",borderLeft:`4px solid ${STATUS_MAP[c.status]?.dot||C.primary}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <Avatar initials={c.avatar||"?"} size={28} bg={cat?.color||C.primary}/>
+                <span style={{fontWeight:600,fontSize:13}}>{c.author}</span>
+                <span style={{fontSize:11.5,color:C.muted}}>{c.date}</span>
+              </div>
+              <Badge s={c.status}/>
+            </div>
+            <h3 style={{margin:"0 0 4px",fontSize:14,color:C.text}}>{c.title}</h3>
+            <div style={{fontSize:12,color:C.muted,marginBottom:4}}>🏢 {c.company}</div>
+            <div style={{display:"flex",gap:12,fontSize:12,color:C.muted}}>
+              <span>👁 {c.views?.toLocaleString()||0}</span><span>👍 {c.votes||0}</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── ADMIN PANEL ──────────────────────────────────────────────
 const AdminPanel = ({ user, setPage, footerData: initFooterData, setFooterData: setParentFooterData }) => {
   const [tab, setTab] = useState("dashboard");
@@ -1818,20 +2072,8 @@ export default function App() {
   const timeoutRef = useRef(null);
   const warningRef = useRef(null);
 
-  // URL routing — hash tabanlı SEO dostu
+  // URL routing — SEO dostu slug tabanlı
   const navigate = (newPage, complaint=null) => {
-    const routes = {
-      "home": "/",
-      "complaints": "/sikayetler",
-      "categories": "/kategoriler",
-      "login": "/giris",
-      "register": "/uye-ol",
-      "new-complaint": "/sikayet-yaz",
-      "profile": "/profil",
-      "admin": "/admin",
-    };
-    const url = complaint ? `/sikayet/${complaint.id}` : (routes[newPage] || "/");
-    window.history.pushState({page:newPage, complaintId:complaint?.id}, "", url);
     setPage(newPage);
     if(complaint) setSelected(complaint);
   };
@@ -1840,24 +2082,52 @@ export default function App() {
   useEffect(()=>{
     const parseUrl = () => {
       const path = window.location.pathname;
-      if(path.startsWith("/sikayet/")) {
-        const id = path.split("/sikayet/")[1];
-        if(id) {
+      const parts = path.split("/").filter(Boolean);
+
+      if(path==="/") { setPage("home"); return; }
+      if(path==="/sikayetler") { setPage("complaints"); return; }
+      if(path==="/kategoriler") { setPage("categories"); return; }
+      if(path==="/giris") { setPage("login"); return; }
+      if(path==="/uye-ol") { setPage("register"); return; }
+      if(path==="/sikayet-yaz") { setPage("new-complaint"); return; }
+      if(path==="/profil") { setPage("profile"); return; }
+      if(path==="/admin") { setPage("admin"); return; }
+
+      // /kategori/kurum/baslik--id
+      if(parts.length===3) {
+        const id = getIdFromSlug(parts[2]);
+        if(id && !isNaN(id)) {
           sb.get("complaints",`?id=eq.${id}`).then(data=>{
             if(data&&data[0]){
               const c=data[0];
-              setSelected({id:c.id,title:c.title,body:c.body,category:c.category,company:c.company,author:c.author_name,avatar:c.author_avatar||"?",date:new Date(c.created_at).toLocaleDateString("tr-TR"),views:c.views||0,votes:c.votes||0,comments:c.comments_count||0,status:c.status});
+              setSelected({id:c.id,title:c.title,body:c.body,category:c.category,company:c.company,
+                author:c.author_name,avatar:c.author_avatar||"?",
+                date:new Date(c.created_at).toLocaleDateString("tr-TR"),
+                views:c.views||0,votes:c.votes||0,comments:c.comments_count||0,status:c.status});
               setPage("detail");
             }
           }).catch(()=>{});
+          return;
         }
-      } else if(path==="/sikayetler") setPage("complaints");
-      else if(path==="/kategoriler") setPage("categories");
-      else if(path==="/giris") setPage("login");
-      else if(path==="/uye-ol") setPage("register");
-      else if(path==="/sikayet-yaz") setPage("new-complaint");
-      else if(path==="/profil") setPage("profile");
-      else if(path==="/admin") setPage("admin");
+        // /kategori/kurum → company page
+        setPage(`company:${parts[0]}:${parts[1]}`);
+        return;
+      }
+
+      // /kategori/kurum → 2 parts
+      if(parts.length===2) {
+        setPage(`company:${parts[0]}:${parts[1]}`);
+        return;
+      }
+
+      // /kategori → category page
+      if(parts.length===1) {
+        const knownRoutes = ["giris","uye-ol","sikayet-yaz","profil","admin","sikayetler","kategoriler"];
+        if(!knownRoutes.includes(parts[0])) {
+          setPage(`category:${parts[0]}`);
+          return;
+        }
+      }
     };
     parseUrl();
     window.addEventListener("popstate", parseUrl);
@@ -1869,17 +2139,35 @@ export default function App() {
     const routes = {
       "home": "/", "complaints": "/sikayetler", "categories": "/kategoriler",
       "login": "/giris", "register": "/uye-ol", "new-complaint": "/sikayet-yaz",
-      "profile": "/profil", "my-complaints": "/profil/sikayetlerim",
-      "notifications": "/profil/bildirimler", "saved": "/profil/kaydedilenler",
+      "profile": "/profil", "my-complaints": "/profil",
+      "notifications": "/profil", "saved": "/profil",
       "admin": "/admin",
     };
+
+    // category: veya company: prefix kontrolü
+    if(newPage.startsWith("category:")) {
+      const catSlug = newPage.replace("category:","");
+      const url = `/${catSlug}`;
+      window.history.pushState({page:newPage}, "", url);
+      setPage(newPage);
+      return;
+    }
+    if(newPage.startsWith("company:")) {
+      const [,catSlug,compSlug] = newPage.split(":");
+      const url = `/${catSlug}/${compSlug}`;
+      window.history.pushState({page:newPage}, "", url);
+      setPage(newPage);
+      return;
+    }
+
     const url = routes[newPage] || "/";
     if(window.location.pathname !== url) window.history.pushState({page:newPage}, "", url);
     setPage(newPage);
   };
 
   const setSelectedAndPage = (complaint) => {
-    if(complaint?.id) window.history.pushState({page:"detail",id:complaint.id}, "", `/sikayet/${complaint.id}`);
+    const url = buildComplaintUrl(complaint);
+    window.history.pushState({page:"detail",id:complaint.id}, "", url);
     setSelected(complaint);
     setPage("detail");
   };
@@ -1953,6 +2241,8 @@ export default function App() {
       {page==="notifications"&&user&&<UserPanel user={user} setUser={setUser} setPage={setPageWithUrl} initTab="notifications"/>}
       {page==="saved"&&user&&<UserPanel user={user} setUser={setUser} setPage={setPageWithUrl} initTab="saved"/>}
       {page==="admin"&&user&&["admin","superadmin","editor"].includes(user.role)&&<AdminPanel user={user} setPage={setPageWithUrl} footerData={footerData} setFooterData={setFooterData}/>}
+      {page.startsWith("category:")&&<CategoryPage categorySlug={page.replace("category:","")} setPage={setPageWithUrl} setSelectedAndPage={setSelectedAndPage} user={user}/>}
+      {page.startsWith("company:")&&(()=>{const [,cat,comp]=page.split(":");return <CompanyPage categorySlug={cat} companySlug={comp} setPage={setPageWithUrl} setSelectedAndPage={setSelectedAndPage} user={user}/>;})()}
 
       <Footer footerData={footerData}/>
     </div>
