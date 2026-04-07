@@ -1127,6 +1127,41 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [passErr, setPassErr] = useState("");
+  const [myComplaints, setMyComplaints] = useState([]);
+  const [myComplaintsLoading, setMyComplaintsLoading] = useState(true);
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(()=>{
+    // Kullanıcının gerçek şikayetlerini çek
+    if(user?.email){
+      sb.get("complaints",`?author_email=eq.${encodeURIComponent(user.email)}&order=created_at.desc`)
+        .then(data=>{
+          if(data&&data.length>0){
+            setMyComplaints(data.map(c=>({
+              id:c.id,title:c.title,body:c.body,category:c.category,company:c.company,
+              date:new Date(c.created_at).toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"}),
+              status:c.status,views:c.views||0,votes:c.votes||0
+            })));
+          }
+          setMyComplaintsLoading(false);
+        }).catch(()=>setMyComplaintsLoading(false));
+    }
+    // Bildirimler - şikayetlerin durum değişikliklerini çek
+    if(user?.email){
+      sb.get("complaints",`?author_email=eq.${encodeURIComponent(user.email)}&select=id,title,status,updated_at&order=updated_at.desc&limit=10`)
+        .then(data=>{
+          if(data&&data.length>0){
+            const notifs=data.map(c=>({
+              icon: c.status==="Çözüldü"?"✅":c.status==="İnceleniyor"?"🔍":"📋",
+              t: `"${c.title.substring(0,50)}..." - Durum: ${c.status}`,
+              time: c.updated_at ? new Date(c.updated_at).toLocaleDateString("tr-TR") : "-",
+              read: c.status==="Açık"
+            }));
+            setNotifications(notifs);
+          }
+        }).catch(()=>{});
+    }
+  },[user]);
 
   const saveProfile = async () => {
     setSaving(true);
@@ -1141,15 +1176,14 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
 
   const changePassword = async () => {
     setPassErr("");
-    // Supabase şifre sıfırlama e-postası gönder
     try {
-      const r = await fetch(`https://xxngmpeoywkcjkjeggse.supabase.co/auth/v1/recover`, {
+      await fetch(`https://xxngmpeoywkcjkjeggse.supabase.co/auth/v1/recover`, {
         method:"POST",
         headers:{"apikey":"sb_publishable_UXSRhaVcf4-lM1Y2DadhJA_okbnpujv","Content-Type":"application/json"},
         body:JSON.stringify({email:user.email})
       });
       setPassForm({current:"",newPass:"",confirm:""});
-      setSaveMsg("✅ Şifre sıfırlama bağlantısı " + user.email + " adresine gönderildi. Gelen kutunuzu kontrol edin.");
+      setSaveMsg("✅ Şifre sıfırlama bağlantısı " + user.email + " adresine gönderildi.");
     }catch{
       setPassErr("Bağlantı hatası. Lütfen tekrar deneyin.");
     }
@@ -1192,11 +1226,9 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
               </FormRow>
               <button style={{...btn("primary","lg"),width:"100%"}} onClick={saveProfile} disabled={saving}>{saving?"Kaydediliyor...":"💾 Bilgileri Kaydet"}</button>
             </div>
-
-            {/* Şifre değiştir */}
             <div style={{...card,marginTop:16}}>
               <h3 style={{margin:"0 0 8px",fontSize:15,color:C.primary,fontWeight:700}}>🔒 Şifre Değiştir</h3>
-              <p style={{fontSize:12.5,color:C.muted,marginBottom:14}}>Şifrenizi değiştirmek için e-posta adresinize bir sıfırlama bağlantısı gönderilecektir.</p>
+              <p style={{fontSize:12.5,color:C.muted,marginBottom:14}}>E-posta adresinize şifre sıfırlama bağlantısı gönderilecektir.</p>
               {passErr&&<div style={{background:"#fee2e2",color:"#dc2626",padding:"8px 12px",borderRadius:8,marginBottom:12,fontSize:13}}>⚠️ {passErr}</div>}
               <button style={{...btn("secondary"),width:"100%"}} onClick={changePassword}>📧 Şifre Sıfırlama E-postası Gönder</button>
             </div>
@@ -1205,12 +1237,23 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
         {tab==="my-complaints"&&(
           <div style={{maxWidth:640}}>
             <h2 style={{margin:"0 0 16px",fontSize:18,fontWeight:700}}>Şikayetlerim</h2>
-            {MOCK_COMPLAINTS.slice(0,2).map(c=>(
-              <div key={c.id} style={{...card,marginBottom:10,borderLeft:`4px solid ${STATUS_MAP[c.status]?.dot}`}}>
+            {myComplaintsLoading&&<div style={{textAlign:"center",padding:40,color:C.muted}}>Yükleniyor...</div>}
+            {!myComplaintsLoading&&myComplaints.length===0&&(
+              <div style={{...card,textAlign:"center",padding:40}}>
+                <div style={{fontSize:44,marginBottom:14}}>📋</div>
+                <h3 style={{fontSize:16,color:C.text,marginBottom:8}}>Henüz şikayet yazmadınız.</h3>
+                <button style={btn("accent")} onClick={()=>setPage("new-complaint")}>+ Şikayet Yaz</button>
+              </div>
+            )}
+            {myComplaints.map(c=>(
+              <div key={c.id} style={{...card,marginBottom:10,borderLeft:`4px solid ${STATUS_MAP[c.status]?.dot||C.primary}`}}>
                 <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:6}}>
                   <h3 style={{margin:"0 0 4px",fontSize:14}}>{c.title}</h3><Badge s={c.status}/>
                 </div>
-                <div style={{fontSize:12,color:C.muted}}>{c.date}</div>
+                <div style={{fontSize:12,color:C.muted,marginBottom:6}}>{c.date} · {c.company}</div>
+                <div style={{display:"flex",gap:12,fontSize:12,color:C.muted}}>
+                  <span>👁 {c.views}</span><span>👍 {c.votes}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -1218,14 +1261,24 @@ const UserPanel = ({ user, setUser, setPage, initTab="profile" }) => {
         {tab==="notifications"&&(
           <div style={{maxWidth:600}}>
             <h2 style={{margin:"0 0 16px",fontSize:18,fontWeight:700}}>Bildirimlerim</h2>
-            <div style={card}>
-              {[{icon:"💬",t:"Şikayetinize yeni bir yorum yapıldı",time:"2 saat önce",read:false},{icon:"✅",t:"Şikayetiniz çözüldü olarak işaretlendi",time:"1 gün önce",read:true}].map((n,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:i<1?`1px solid ${C.border}`:"none"}}>
-                  <span style={{fontSize:18}}>{n.icon}</span>
-                  <div style={{flex:1}}><div style={{fontSize:13,fontWeight:n.read?400:600}}>{n.t}</div><div style={{fontSize:11.5,color:C.muted}}>{n.time}</div></div>
-                </div>
-              ))}
-            </div>
+            {notifications.length===0?(
+              <div style={{...card,textAlign:"center",padding:40}}>
+                <div style={{fontSize:44,marginBottom:14}}>🔔</div>
+                <h3 style={{fontSize:16,color:C.text}}>Henüz bildirim yok.</h3>
+              </div>
+            ):(
+              <div style={card}>
+                {notifications.map((n,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:i<notifications.length-1?`1px solid ${C.border}`:"none"}}>
+                    <span style={{fontSize:20}}>{n.icon}</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:n.read?400:600}}>{n.t}</div>
+                      <div style={{fontSize:11.5,color:C.muted}}>{n.time}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {tab==="saved"&&(
@@ -1692,7 +1745,7 @@ export default function App() {
   const [siteStats, setSiteStats] = useState({total:0,resolved:0,members:0});
   const [footerData, setFooterData] = useState({
     desc:"KKTC'nin bağımsız şikayet platformu. Sesinizi duyurun, değişim yaratın.",
-    columns:[{title:"Platform",links:[{label:"Şikayetler",url:"#"},{label:"Kategoriler",url:"#"}]},{title:"Yardım",links:[{label:"SSS",url:"#"},{label:"İletişim",url:"#"}]}],
+    columns:[{title:"Platform",links:[{label:"Şikayetler",url:"/sikayetler"},{label:"Kategoriler",url:"/kategoriler"}]},{title:"Yardım",links:[{label:"SSS",url:"/sss"},{label:"İletişim",url:"/iletisim"}]}],
     copyright:"© 2026 ŞikayetETKKTC. Tüm hakları saklıdır.",
     instagram:"sikayetetkktc",facebook:"sikayetetkktc",twitter:"sikayetetkktc",
   });
@@ -1700,6 +1753,72 @@ export default function App() {
   const [timeoutRemaining, setTimeoutRemaining] = useState(60);
   const timeoutRef = useRef(null);
   const warningRef = useRef(null);
+
+  // URL routing — hash tabanlı SEO dostu
+  const navigate = (newPage, complaint=null) => {
+    const routes = {
+      "home": "/",
+      "complaints": "/sikayetler",
+      "categories": "/kategoriler",
+      "login": "/giris",
+      "register": "/uye-ol",
+      "new-complaint": "/sikayet-yaz",
+      "profile": "/profil",
+      "admin": "/admin",
+    };
+    const url = complaint ? `/sikayet/${complaint.id}` : (routes[newPage] || "/");
+    window.history.pushState({page:newPage, complaintId:complaint?.id}, "", url);
+    setPage(newPage);
+    if(complaint) setSelected(complaint);
+  };
+
+  // URL'den sayfa belirle
+  useEffect(()=>{
+    const parseUrl = () => {
+      const path = window.location.pathname;
+      if(path.startsWith("/sikayet/")) {
+        const id = path.split("/sikayet/")[1];
+        if(id) {
+          sb.get("complaints",`?id=eq.${id}`).then(data=>{
+            if(data&&data[0]){
+              const c=data[0];
+              setSelected({id:c.id,title:c.title,body:c.body,category:c.category,company:c.company,author:c.author_name,avatar:c.author_avatar||"?",date:new Date(c.created_at).toLocaleDateString("tr-TR"),views:c.views||0,votes:c.votes||0,comments:c.comments_count||0,status:c.status});
+              setPage("detail");
+            }
+          }).catch(()=>{});
+        }
+      } else if(path==="/sikayetler") setPage("complaints");
+      else if(path==="/kategoriler") setPage("categories");
+      else if(path==="/giris") setPage("login");
+      else if(path==="/uye-ol") setPage("register");
+      else if(path==="/sikayet-yaz") setPage("new-complaint");
+      else if(path==="/profil") setPage("profile");
+      else if(path==="/admin") setPage("admin");
+    };
+    parseUrl();
+    window.addEventListener("popstate", parseUrl);
+    return () => window.removeEventListener("popstate", parseUrl);
+  },[]);
+
+  // setPage wrapper — URL günceller
+  const setPageWithUrl = (newPage) => {
+    const routes = {
+      "home": "/", "complaints": "/sikayetler", "categories": "/kategoriler",
+      "login": "/giris", "register": "/uye-ol", "new-complaint": "/sikayet-yaz",
+      "profile": "/profil", "my-complaints": "/profil/sikayetlerim",
+      "notifications": "/profil/bildirimler", "saved": "/profil/kaydedilenler",
+      "admin": "/admin",
+    };
+    const url = routes[newPage] || "/";
+    if(window.location.pathname !== url) window.history.pushState({page:newPage}, "", url);
+    setPage(newPage);
+  };
+
+  const setSelectedAndPage = (complaint) => {
+    if(complaint?.id) window.history.pushState({page:"detail",id:complaint.id}, "", `/sikayet/${complaint.id}`);
+    setSelected(complaint);
+    setPage("detail");
+  };
 
   useEffect(()=>{ injectFavicon(); },[]);
 
@@ -1753,23 +1872,23 @@ export default function App() {
         }
       `}</style>
 
-      {showTimeoutModal&&<SessionTimeoutModal onLogout={()=>{clearSession();setUser(null);setPage("home");setShowTimeoutModal(false);}} onExtend={()=>{extendSession();setShowTimeoutModal(false);}} remaining={timeoutRemaining}/>}
+      {showTimeoutModal&&<SessionTimeoutModal onLogout={()=>{clearSession();setUser(null);setPageWithUrl("home");setShowTimeoutModal(false);}} onExtend={()=>{extendSession();setShowTimeoutModal(false);}} remaining={timeoutRemaining}/>}
 
       <TopBar stats={siteStats}/>
-      <Navbar page={page} setPage={setPage} user={user} setUser={setUser}/>
+      <Navbar page={page} setPage={setPageWithUrl} user={user} setUser={setUser}/>
 
-      {page==="home"&&<HomePage setPage={setPage} setSelected={setSelected} user={user} siteStats={siteStats}/>}
-      {page==="complaints"&&<ComplaintsPage setPage={setPage} setSelected={setSelected}/>}
-      {page==="detail"&&<DetailPage complaint={selected} setPage={setPage} user={user}/>}
-      {page==="categories"&&<CategoriesPage setPage={setPage}/>}
-      {page==="login"&&<LoginPage setPage={setPage} setUser={setUser}/>}
-      {page==="register"&&<RegisterPage setPage={setPage} setUser={setUser}/>}
-      {page==="new-complaint"&&<AIComplaintPage user={user} setPage={setPage}/>}
-      {page==="profile"&&user&&<UserPanel user={user} setUser={setUser} setPage={setPage} initTab="profile"/>}
-      {page==="my-complaints"&&user&&<UserPanel user={user} setUser={setUser} setPage={setPage} initTab="my-complaints"/>}
-      {page==="notifications"&&user&&<UserPanel user={user} setUser={setUser} setPage={setPage} initTab="notifications"/>}
-      {page==="saved"&&user&&<UserPanel user={user} setUser={setUser} setPage={setPage} initTab="saved"/>}
-      {page==="admin"&&user&&["admin","superadmin","editor"].includes(user.role)&&<AdminPanel user={user} setPage={setPage} footerData={footerData} setFooterData={setFooterData}/>}
+      {page==="home"&&<HomePage setPage={setPageWithUrl} setSelected={setSelectedAndPage} user={user} siteStats={siteStats}/>}
+      {page==="complaints"&&<ComplaintsPage setPage={setPageWithUrl} setSelected={setSelectedAndPage}/>}
+      {page==="detail"&&<DetailPage complaint={selected} setPage={setPageWithUrl} user={user}/>}
+      {page==="categories"&&<CategoriesPage setPage={setPageWithUrl}/>}
+      {page==="login"&&<LoginPage setPage={setPageWithUrl} setUser={setUser}/>}
+      {page==="register"&&<RegisterPage setPage={setPageWithUrl} setUser={setUser}/>}
+      {page==="new-complaint"&&<AIComplaintPage user={user} setPage={setPageWithUrl}/>}
+      {page==="profile"&&user&&<UserPanel user={user} setUser={setUser} setPage={setPageWithUrl} initTab="profile"/>}
+      {page==="my-complaints"&&user&&<UserPanel user={user} setUser={setUser} setPage={setPageWithUrl} initTab="my-complaints"/>}
+      {page==="notifications"&&user&&<UserPanel user={user} setUser={setUser} setPage={setPageWithUrl} initTab="notifications"/>}
+      {page==="saved"&&user&&<UserPanel user={user} setUser={setUser} setPage={setPageWithUrl} initTab="saved"/>}
+      {page==="admin"&&user&&["admin","superadmin","editor"].includes(user.role)&&<AdminPanel user={user} setPage={setPageWithUrl} footerData={footerData} setFooterData={setFooterData}/>}
 
       <Footer footerData={footerData}/>
     </div>
