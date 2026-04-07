@@ -2078,7 +2078,7 @@ export default function App() {
     if(complaint) setSelected(complaint);
   };
 
-  // URL'den sayfa belirle
+  // URL'den sayfa belirle - sadece ilk yüklemede ve geri/ileri butonunda
   useEffect(()=>{
     const parseUrl = () => {
       const path = window.location.pathname;
@@ -2109,18 +2109,15 @@ export default function App() {
           }).catch(()=>{});
           return;
         }
-        // /kategori/kurum → company page
         setPage(`company:${parts[0]}:${parts[1]}`);
         return;
       }
 
-      // /kategori/kurum → 2 parts
       if(parts.length===2) {
         setPage(`company:${parts[0]}:${parts[1]}`);
         return;
       }
 
-      // /kategori → category page
       if(parts.length===1) {
         const knownRoutes = ["giris","uye-ol","sikayet-yaz","profil","admin","sikayetler","kategoriler"];
         if(!knownRoutes.includes(parts[0])) {
@@ -2129,10 +2126,14 @@ export default function App() {
         }
       }
     };
+
+    // Sadece ilk yüklemede çalıştır
     parseUrl();
+
+    // Geri/ileri butonlarında çalıştır
     window.addEventListener("popstate", parseUrl);
     return () => window.removeEventListener("popstate", parseUrl);
-  },[]);
+  },[]); // Boş dependency array — sadece mount'ta çalışır
 
   // setPage wrapper — URL günceller
   const setPageWithUrl = (newPage) => {
@@ -2167,9 +2168,12 @@ export default function App() {
 
   const setSelectedAndPage = (complaint) => {
     const url = buildComplaintUrl(complaint);
+    console.log("setSelectedAndPage called, url:", url, "complaint:", complaint.id);
     window.history.pushState({page:"detail",id:complaint.id}, "", url);
+    console.log("After pushState, location:", window.location.pathname);
     setSelected(complaint);
     setPage("detail");
+    console.log("After setPage detail, location:", window.location.pathname);
   };
 
   useEffect(()=>{ injectFavicon(); },[]);
