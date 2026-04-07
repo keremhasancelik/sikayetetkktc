@@ -368,8 +368,9 @@ const Footer = ({ footerData }) => {
 // ─── COMPLAINT CARD ──────────────────────────────────────────
 const ComplaintCard = ({ c, onClick }) => {
   const cat = PRESET_CATEGORIES.find(x=>x.name===c.category);
+  const url = buildComplaintUrl(c);
   return (
-    <a href={`/sikayet/${c.id}`} onClick={e=>{e.preventDefault();onClick(c);}} style={{...card,cursor:"pointer",borderTop:`3px solid ${cat?.color||C.primary}`,textDecoration:"none",display:"block",color:"inherit"}}>
+    <a href={url} onClick={e=>{e.preventDefault();onClick(c);}} style={{...card,cursor:"pointer",borderTop:`3px solid ${cat?.color||C.primary}`,textDecoration:"none",display:"block",color:"inherit"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <Avatar initials={c.avatar||"?"} size={34} bg={cat?.color||C.primary}/>
@@ -462,7 +463,7 @@ const HomePage = ({ setPage, setSelected, user, siteStats }) => {
             <button style={btn("ghost","sm")} onClick={()=>setPage("complaints")}>Tümü →</button>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:14}}>
-            {filtered.map(c=><ComplaintCard key={c.id} c={c} onClick={c=>{setSelected(c);setPage("detail");}}/>)}
+            {filtered.map(c=><ComplaintCard key={c.id} c={c} onClick={setSelected}/>)}
           </div>
         </div>
       </div>
@@ -2168,12 +2169,9 @@ export default function App() {
 
   const setSelectedAndPage = (complaint) => {
     const url = buildComplaintUrl(complaint);
-    console.log("setSelectedAndPage called, url:", url, "complaint:", complaint.id);
     window.history.pushState({page:"detail",id:complaint.id}, "", url);
-    console.log("After pushState, location:", window.location.pathname);
     setSelected(complaint);
     setPage("detail");
-    console.log("After setPage detail, location:", window.location.pathname);
   };
 
   useEffect(()=>{ injectFavicon(); },[]);
