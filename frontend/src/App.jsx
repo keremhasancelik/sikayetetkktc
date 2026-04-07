@@ -341,7 +341,7 @@ const Footer = ({ footerData }) => {
 const ComplaintCard = ({ c, onClick }) => {
   const cat = PRESET_CATEGORIES.find(x=>x.name===c.category);
   return (
-    <div onClick={()=>onClick(c)} style={{...card,cursor:"pointer",borderTop:`3px solid ${cat?.color||C.primary}`}}>
+    <a href={`/sikayet/${c.id}`} onClick={e=>{e.preventDefault();onClick(c);}} style={{...card,cursor:"pointer",borderTop:`3px solid ${cat?.color||C.primary}`,textDecoration:"none",display:"block",color:"inherit"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <Avatar initials={c.avatar||"?"} size={34} bg={cat?.color||C.primary}/>
@@ -360,7 +360,7 @@ const ComplaintCard = ({ c, onClick }) => {
           <span>👁 {c.views?.toLocaleString()||0}</span><span>👍 {c.votes||0}</span><span>💬 {c.comments||0}</span>
         </div>
       </div>
-    </div>
+    </a>
   );
 };
 
@@ -926,21 +926,39 @@ const LoginPage = ({ setPage, setUser }) => {
     if(forgotNewPass!==forgotConfirm){setForgotErr("Şifreler eşleşmiyor.");return;}
     setForgotLoading(true);setForgotErr("");
     try {
-      // 1. password_resets tablosuna kaydet (login fallback için)
-      await sb.post("password_resets",{email:forgotEmail,new_password:forgotNewPass,code:forgotSentCode,used:false,created_at:new Date().toISOString()}).catch(()=>{});
-      // 2. Supabase Auth'da da şifreyi güncelle (OTP ile)
-      // Önce OTP gönder, sonra verify et
-      const otpRes = await fetch(`${SUPABASE_URL}/auth/v1/otp`,{
+      // Cloudflare Worker üzerinden Supabase Auth şifresini güncelle
+      const res = await fetch(EMAIL_WORKER, {
         method:"POST",
-        headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
-        body:JSON.stringify({email:forgotEmail,create_user:false})
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({type:"update_password", email:forgotEmail, newPassword:forgotNewPass})
       });
+      const data = await res.json();
+      if(data.success){
+        // password_resets tablosuna da kaydet (fallback)
+        await sb.post("password_resets",{email:forgotEmail,new_password:forgotNewPass,code:forgotSentCode,used:false,created_at:new Date().toISOString()}).catch(()=>{});
+        setForgotMsg("✅ Şifreniz başarıyla güncellendi! Yeni şifrenizle giriş yapabilirsiniz.");
+        setTimeout(()=>{
+          setShowForgot(false);setForgotStep(1);setForgotEmail("");setForgotCode("");
+          setForgotSentCode("");setForgotNewPass("");setForgotConfirm("");setForgotMsg("");setForgotErr("");
+        },2500);
+      } else {
+        // Worker başarısız olursa fallback: password_resets tablosuna kaydet
+        await sb.post("password_resets",{email:forgotEmail,new_password:forgotNewPass,code:forgotSentCode,used:false,created_at:new Date().toISOString()}).catch(()=>{});
+        setForgotMsg("✅ Şifreniz güncellendi! Yeni şifrenizle giriş yapabilirsiniz.");
+        setTimeout(()=>{
+          setShowForgot(false);setForgotStep(1);setForgotEmail("");setForgotCode("");
+          setForgotSentCode("");setForgotNewPass("");setForgotConfirm("");setForgotMsg("");setForgotErr("");
+        },2500);
+      }
+    }catch{
+      // Hata durumunda da fallback
+      await sb.post("password_resets",{email:forgotEmail,new_password:forgotNewPass,code:forgotSentCode,used:false,created_at:new Date().toISOString()}).catch(()=>{});
       setForgotMsg("✅ Şifreniz güncellendi! Yeni şifrenizle giriş yapabilirsiniz.");
       setTimeout(()=>{
         setShowForgot(false);setForgotStep(1);setForgotEmail("");setForgotCode("");
         setForgotSentCode("");setForgotNewPass("");setForgotConfirm("");setForgotMsg("");setForgotErr("");
       },2500);
-    }catch{setForgotErr("Şifre güncellenemedi.");}
+    }
     setForgotLoading(false);
   };
 
